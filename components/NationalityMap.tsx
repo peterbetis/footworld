@@ -102,6 +102,7 @@ export default function NationalityMap({
   selected,
   previewed = null,
   onSelect,
+  onPreview,
 }: {
   map: MapData;
   markers: CountryMarker[];
@@ -109,6 +110,8 @@ export default function NationalityMap({
   /** Country to highlight temporarily, e.g. while a player tile is hovered. */
   previewed?: string | null;
   onSelect: (country: string) => void;
+  /** Called while a country shape with players is hovered (null when it isn't). */
+  onPreview?: (country: string | null) => void;
 }) {
   const t = useT();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -298,6 +301,12 @@ export default function NationalityMap({
   const tinted = new Set(markers.map((m) => m.countryKey).filter(Boolean));
   const selectedKey = markers.find((m) => m.country === selected)?.countryKey ?? null;
   const previewedKey = markers.find((m) => m.country === previewed)?.countryKey ?? null;
+  // Map shape → nationality. Markers are sorted by player count, so a shape shared
+  // by several nationalities (the UK) maps to the one with most players.
+  const countryByKey = new Map<string, string>();
+  for (const m of markers) {
+    if (m.countryKey && !countryByKey.has(m.countryKey)) countryByKey.set(m.countryKey, m.country);
+  }
   // Marker radius: smaller at the whole-world view (70%), growing to full size
   // by 2× zoom, so the unzoomed map isn't crowded with flags.
   const fullR = width && width < 640 ? 10 : 12;
@@ -348,26 +357,33 @@ export default function NationalityMap({
         aria-hidden
       >
         <g transform={`translate(${view.tx} ${view.ty}) scale(${view.k})`}>
-          {map.countries.map((c) => (
-            <path
-              key={c.key}
-              d={c.d}
-              stroke="var(--surface)"
-              strokeWidth="0.5"
-              vectorEffect="non-scaling-stroke"
-              className="transition-[fill] duration-300"
-              style={{
-                fill:
-                  c.key === selectedKey
-                    ? "color-mix(in oklab, var(--accent) 75%, var(--border))"
-                    : c.key === previewedKey
-                      ? "color-mix(in oklab, var(--accent) 55%, var(--border))"
+          {map.countries.map((c) => {
+            // Countries with players respond to hover (highlighted like a selection) and click.
+            const country = countryByKey.get(c.key);
+            return (
+              <path
+                key={c.key}
+                d={c.d}
+                stroke="var(--surface)"
+                strokeWidth="0.5"
+                vectorEffect="non-scaling-stroke"
+                className={`transition-[fill] duration-150 ${country ? "cursor-pointer" : ""}`}
+                onPointerEnter={
+                  country ? (e) => e.pointerType === "mouse" && onPreview?.(country) : undefined
+                }
+                onPointerLeave={country ? () => onPreview?.(null) : undefined}
+                onClick={country ? () => onSelect(country) : undefined}
+                style={{
+                  fill:
+                    c.key === selectedKey || c.key === previewedKey
+                      ? "color-mix(in oklab, var(--accent) 75%, var(--border))"
                       : tinted.has(c.key)
                         ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
                         : "var(--border)",
-              }}
-            />
-          ))}
+                }}
+              />
+            );
+          })}
         </g>
       </svg>
 
@@ -406,6 +422,11 @@ export default function NationalityMap({
             aria-label={label}
             title={label}
             onClick={() => onSelect(p.marker.country)}
+            // Hovering (or focusing) a flag highlights its country, like hovering the shape.
+            onPointerEnter={(e) => e.pointerType === "mouse" && onPreview?.(p.marker.country)}
+            onPointerLeave={() => onPreview?.(null)}
+            onFocus={() => onPreview?.(p.marker.country)}
+            onBlur={() => onPreview?.(null)}
             className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-[scale,opacity] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               isSelected
                 ? "z-20 scale-125 ring-2 ring-accent ring-offset-1 ring-offset-bg"

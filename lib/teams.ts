@@ -1,7 +1,10 @@
 import "server-only";
+import { slugify } from "./slug";
 
 export interface Team {
   id: string;
+  /** Readable name used in the URL, e.g. "real-madrid". */
+  urlSlug: string;
   name: string;
   abbreviation: string;
   logo: string;
@@ -40,6 +43,7 @@ export async function getTeams(leagueSlug: string): Promise<Team[]> {
       const logo = logos.find((l) => l.rel?.includes("default"))?.href ?? logos[0]?.href ?? "";
       return {
         id: team.id,
+        urlSlug: slugify(team.displayName),
         name: team.displayName,
         abbreviation: team.abbreviation,
         logo,

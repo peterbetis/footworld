@@ -1,8 +1,11 @@
 import "server-only";
+import { slugify } from "./slug";
 
 export interface League {
-  /** ESPN league slug, e.g. "esp.1". */
+  /** ESPN league slug, e.g. "esp.1" (used for data requests). */
   slug: string;
+  /** Readable name used in the URL, e.g. "laliga". */
+  urlSlug: string;
   name: string;
   country: string;
   /** Logo for dark backgrounds (the header is dark). */
@@ -11,7 +14,7 @@ export interface League {
 }
 
 // Main European leagues, in display order. Only LaLiga and the Premier League are wired up so far.
-const LEAGUES: Omit<League, "logo">[] = [
+const LEAGUES: Omit<League, "logo" | "urlSlug">[] = [
   { slug: "esp.1", name: "LaLiga", country: "Spain", available: true },
   { slug: "eng.1", name: "Premier League", country: "England", available: true },
   { slug: "ita.1", name: "Serie A", country: "Italy", available: false },
@@ -45,5 +48,5 @@ async function getLogo(slug: string): Promise<string> {
 
 export async function getLeagues(): Promise<League[]> {
   const logos = await Promise.all(LEAGUES.map((l) => getLogo(l.slug)));
-  return LEAGUES.map((l, i) => ({ ...l, logo: logos[i] }));
+  return LEAGUES.map((l, i) => ({ ...l, urlSlug: slugify(l.name), logo: logos[i] }));
 }

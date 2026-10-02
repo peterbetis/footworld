@@ -15,13 +15,13 @@ export default function TeamsDropdown({
   teams: Team[];
 }) {
   const [open, setOpen] = useState(false);
-  const { selectedId, toggle } = useSelectedTeam();
+  const { selectedSlug, toggle } = useSelectedTeam();
   const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const panelId = useId();
 
-  const selected = teams.find((t) => t.id === selectedId) ?? null;
+  const selected = teams.find((t) => t.urlSlug === selectedSlug) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -104,14 +104,14 @@ export default function TeamsDropdown({
           className="absolute inset-x-0 z-40 mt-2 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-surface py-1 shadow-xl"
         >
           {teams.map((t) => {
-            const isSelected = t.id === selectedId;
+            const isSelected = t.urlSlug === selectedSlug;
             return (
               <li key={t.id} className="border-t border-border first:border-t-0">
                 <button
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => {
-                    toggle(t.id);
+                    toggle(t.urlSlug);
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors focus-visible:bg-bg focus-visible:outline-none ${

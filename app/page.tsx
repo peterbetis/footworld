@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Header from "@/components/Header";
 import { I18nProvider } from "@/components/I18nProvider";
@@ -7,13 +8,33 @@ import TeamsTable, { TeamsTableSkeleton } from "@/components/TeamsTable";
 import { REVEAL } from "@/components/sidebar";
 import { getMessages, localeForLeague } from "@/lib/i18n";
 import { getLeagues } from "@/lib/leagues";
+import { getTeams } from "@/lib/teams";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
-  const { league, team } = await searchParams;
+  const params = await searchParams;
+  const leagueParam = typeof params.league === "string" ? params.league : undefined;
+  const teamParam = typeof params.team === "string" ? params.team : undefined;
   const leagues = await getLeagues();
+
+  // URLs use readable names (?league=laliga&team=real-madrid). ESPN codes from
+  // older links (?league=esp.1&team=86) are still understood, then redirected.
   // Nothing is selected until the user picks a league from the dropdown.
-  const selected = leagues.find((l) => l.slug === league && l.available) ?? null;
-  const teamId = selected && typeof team === "string" && /^\d+$/.test(team) ? team : null;
+  const selected =
+    leagues.find((l) => l.available && (l.urlSlug === leagueParam || l.slug === leagueParam)) ??
+    null;
+  const team =
+    selected && teamParam
+      ? (await getTeams(selected.slug).catch(() => [])).find(
+          (t) => t.urlSlug === teamParam || t.id === teamParam,
+        )
+      : undefined;
+  const teamId = team?.id ?? null;
+
+  if (selected) {
+    const canonical = `/?league=${selected.urlSlug}${team ? `&team=${team.urlSlug}` : ""}`;
+    const current = `/?league=${leagueParam}${teamParam ? `&team=${teamParam}` : ""}`;
+    if (canonical !== current) redirect(canonical);
+  }
   const locale = localeForLeague(selected?.slug);
   const t = getMessages(locale);
 

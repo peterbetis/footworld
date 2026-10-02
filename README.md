@@ -18,7 +18,7 @@ League data comes from ESPN's public sports API, which needs no API key. It's un
 - League info and logos: `https://sports.core.api.espn.com/v2/sports/soccer/leagues/{slug}`. Logos are cached for 24h.
 - League slugs: `esp.1` LaLiga, `eng.1` Premier League, `ita.1` Serie A, `ger.1` Bundesliga, `fra.1` Ligue 1, `por.1` Primeira Liga, `ned.1` Eredivisie.
 
-Leagues are configured in `lib/leagues.ts`. LaLiga and the Premier League are `available`; the others appear in the dropdown marked "Soon". No league is selected on first load; picking one from the dropdown sets it in the URL (`/?league=esp.1`) and loads its teams. Clicking a team selects and highlights it (`&team=<id>`); clicking it again clears the selection, and switching league clears it too.
+Leagues are configured in `lib/leagues.ts`. LaLiga and the Premier League are `available`; the others appear in the dropdown marked "Soon". No league is selected on first load; picking one from the dropdown sets it in the URL by its readable name (`/?league=laliga`) and loads its teams. Clicking a team selects and highlights it, also by name (`&team=real-madrid`; names come from `slugify` in `lib/slug.ts`). Older links using ESPN codes (`?league=esp.1&team=86`) still work and redirect to the readable form; clicking it again clears the selection, and switching league clears it too.
 
 ## Language
 

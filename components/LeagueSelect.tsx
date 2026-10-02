@@ -48,7 +48,7 @@ export default function LeagueSelect({
   const choose = (league: League) => {
     if (!league.available) return;
     setOpen(false);
-    if (league.slug !== current?.slug) router.replace(`/?league=${league.slug}`);
+    if (league.slug !== current?.slug) router.replace(`/?league=${league.urlSlug}`);
   };
 
   const move = (dir: 1 | -1) => {

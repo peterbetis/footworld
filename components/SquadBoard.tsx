@@ -107,7 +107,8 @@ export default function SquadBoard({
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
+      {/* Hidden on phones: the teams bar under the page header already shows the team. */}
+      <header className="hidden items-center gap-3 border-b border-border px-4 py-3 sm:flex sm:px-6">
         {heading}
       </header>
 
@@ -180,6 +181,7 @@ export default function SquadBoard({
                 selected={focusCountry}
                 previewed={hoverCountry}
                 onSelect={selectCountry}
+                onPreview={setHoveredShare}
               />
             </div>
           </div>

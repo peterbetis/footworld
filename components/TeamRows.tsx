@@ -7,7 +7,7 @@ import TeamLogo from "./TeamLogo";
 import { REVEAL } from "./sidebar";
 
 export default function TeamRows({ teams }: { teams: Team[] }) {
-  const { selectedId, toggle } = useSelectedTeam();
+  const { selectedSlug, toggle } = useSelectedTeam();
   const t = useT();
 
   return (
@@ -21,7 +21,7 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
       </thead>
       <tbody>
         {teams.map((t) => {
-          const selected = t.id === selectedId;
+          const selected = t.urlSlug === selectedSlug;
           return (
             <tr
               key={t.id}
@@ -35,7 +35,7 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
                 <button
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => toggle(t.id)}
+                  onClick={() => toggle(t.urlSlug)}
                   className="flex w-full items-center gap-3 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent"
                 >
                   <TeamLogo team={t} />
