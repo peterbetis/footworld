@@ -5,6 +5,7 @@ import type { Kit } from "@/lib/kits";
 import type { Player, Position } from "@/lib/players";
 import FlagCircle from "./FlagCircle";
 import NationalityMap, { type CountryMarker, type MapData } from "./NationalityMap";
+import NationalityShares from "./NationalityShares";
 import Shirt from "./Shirt";
 
 const GROUPS: { position: Position; title: string }[] = [
@@ -18,11 +19,14 @@ const GROUPS: { position: Position; title: string }[] = [
 type Selection = { country: string | null; playerId: string | null } | null;
 
 export default function SquadBoard({
+  heading,
   players,
   kit,
   map,
   markers,
 }: {
+  /** Team crest and name, shown at the start of the header row. */
+  heading: React.ReactNode;
   players: Player[];
   kit: Kit;
   map: MapData;
@@ -30,11 +34,25 @@ export default function SquadBoard({
 }) {
   const [selection, setSelection] = useState<Selection>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [hoveredShare, setHoveredShare] = useState<string | null>(null);
 
   const selectedPlayer = players.find((p) => p.id === selection?.playerId) ?? null;
   const focusCountry = selection?.country ?? null;
   const hoveredPlayer = players.find((p) => p.id === hoveredId) ?? null;
-  const hoverCountry = hoveredPlayer?.nationality?.country ?? null;
+  const hoverCountry = hoveredPlayer?.nationality?.country ?? hoveredShare;
+
+  // Every nationality in the squad (not only those placeable on the map).
+  const shares = [
+    ...players
+      .reduce((acc, p) => {
+        if (!p.nationality) return acc;
+        const cur = acc.get(p.nationality.country);
+        if (cur) cur.count++;
+        else acc.set(p.nationality.country, { ...p.nationality, count: 1 });
+        return acc;
+      }, new Map<string, { country: string; flag: string; count: number }>())
+      .values(),
+  ];
 
   // Clicking the selected country's flag again (including via a selected player) clears it.
   const selectCountry = (c: string) =>
@@ -50,6 +68,20 @@ export default function SquadBoard({
 
   return (
     <>
+      <header className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:px-6 md:flex-row md:items-center md:gap-6">
+        <div className="flex shrink-0 items-center gap-3">{heading}</div>
+        <div className="min-w-0 md:flex-1">
+          <NationalityShares
+            countries={shares}
+            total={players.length}
+            selected={focusCountry}
+            previewed={hoverCountry}
+            onSelect={selectCountry}
+            onPreview={setHoveredShare}
+          />
+        </div>
+      </header>
+
       <section aria-label="Squad nationalities" className="border-b border-border bg-bg">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 pt-3 sm:px-6">
           <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">

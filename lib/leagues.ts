@@ -10,10 +10,10 @@ export interface League {
   available: boolean;
 }
 
-// Main European leagues, in display order. Only La Liga has data wired up so far.
+// Main European leagues, in display order. Only LaLiga and the Premier League are wired up so far.
 const LEAGUES: Omit<League, "logo">[] = [
   { slug: "esp.1", name: "LaLiga", country: "Spain", available: true },
-  { slug: "eng.1", name: "Premier League", country: "England", available: false },
+  { slug: "eng.1", name: "Premier League", country: "England", available: true },
   { slug: "ita.1", name: "Serie A", country: "Italy", available: false },
   { slug: "ger.1", name: "Bundesliga", country: "Germany", available: false },
   { slug: "fra.1", name: "Ligue 1", country: "France", available: false },

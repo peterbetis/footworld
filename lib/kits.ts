@@ -43,6 +43,28 @@ const KITS: Record<string, Kit> = {
   "243": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#d81022", print: "#d81022" }, // Sevilla
   "94": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#111111", print: "#111111" }, // Valencia
   "102": { pattern: "solid", base: "#ffe667", accent: "#ffe667", trim: "#005187", print: "#005187" }, // Villarreal
+
+  // Premier League
+  "349": { pattern: "stripes", base: "#da291c", accent: "#111111", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // AFC Bournemouth
+  "359": { pattern: "solid", base: "#ef0107", accent: "#ef0107", sleeves: "#ffffff", trim: "#ef0107", print: "#ffffff" }, // Arsenal
+  "362": { pattern: "solid", base: "#670e36", accent: "#670e36", sleeves: "#95bfe5", trim: "#95bfe5", print: "#ffffff" }, // Aston Villa
+  "337": { pattern: "stripes", base: "#ffffff", accent: "#e30613", sleeves: "#e30613", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Brentford
+  "331": { pattern: "stripes", base: "#ffffff", accent: "#0057b8", sleeves: "#0057b8", trim: "#0057b8", print: "#0a2240", printOutline: "#ffffff" }, // Brighton & Hove Albion
+  "363": { pattern: "solid", base: "#034694", accent: "#034694", trim: "#ffffff", print: "#ffffff" }, // Chelsea
+  "388": { pattern: "solid", base: "#6cbce6", accent: "#6cbce6", trim: "#ffffff", print: "#0b2341" }, // Coventry City
+  "384": { pattern: "stripes", base: "#c4122e", accent: "#1b458f", sleeves: "#1b458f", trim: "#1b458f", print: "#ffffff", printOutline: "#0a1a3a" }, // Crystal Palace
+  "368": { pattern: "solid", base: "#003399", accent: "#003399", trim: "#ffffff", print: "#ffffff" }, // Everton
+  "370": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#111111", print: "#111111" }, // Fulham
+  "306": { pattern: "stripes", base: "#f5a12d", accent: "#1a1a1a", trim: "#1a1a1a", print: "#ffffff", printOutline: "#1a1a1a" }, // Hull City
+  "373": { pattern: "solid", base: "#0044a9", accent: "#0044a9", trim: "#ffffff", print: "#ffffff" }, // Ipswich Town
+  "357": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#ffcd00", print: "#1d428a" }, // Leeds United
+  "364": { pattern: "solid", base: "#c8102e", accent: "#c8102e", trim: "#ffffff", print: "#ffffff" }, // Liverpool
+  "382": { pattern: "solid", base: "#6cabdd", accent: "#6cabdd", trim: "#1c2c5b", print: "#1c2c5b" }, // Manchester City
+  "360": { pattern: "solid", base: "#da291c", accent: "#da291c", trim: "#111111", print: "#ffffff" }, // Manchester United
+  "361": { pattern: "stripes", base: "#ffffff", accent: "#111111", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Newcastle United
+  "393": { pattern: "solid", base: "#dd0000", accent: "#dd0000", trim: "#ffffff", print: "#ffffff" }, // Nottingham Forest
+  "366": { pattern: "stripes", base: "#ffffff", accent: "#eb172b", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Sunderland
+  "367": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#132257", print: "#132257" }, // Tottenham Hotspur
 };
 
 function isDark(hex: string) {

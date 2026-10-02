@@ -51,18 +51,24 @@ export default async function Squad({
 
   return (
     <section aria-label={`${squad.teamName} squad`}>
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
-        {team && <TeamLogo team={team} size={40} />}
-        <div className="min-w-0">
-          <h2 className="truncate text-lg font-bold">{squad.teamName}</h2>
-          <p className="text-xs text-muted">
-            {squad.season && `${squad.season} squad · `}
-            {squad.players.length} players
-          </p>
-        </div>
-      </header>
-
-      <SquadBoard players={squad.players} kit={kit} map={getWorldMap()} markers={markers} />
+      <SquadBoard
+        heading={
+          <>
+            {team && <TeamLogo team={team} size={40} />}
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-bold">{squad.teamName}</h2>
+              <p className="text-xs text-muted">
+                {squad.season && `${squad.season} squad · `}
+                {squad.players.length} players
+              </p>
+            </div>
+          </>
+        }
+        players={squad.players}
+        kit={kit}
+        map={getWorldMap()}
+        markers={markers}
+      />
     </section>
   );
 }
