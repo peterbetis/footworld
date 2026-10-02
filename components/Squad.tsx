@@ -1,6 +1,7 @@
 import { getKit } from "@/lib/kits";
 import { getSquad, type Position, type Squad as SquadData } from "@/lib/players";
 import { getTeams } from "@/lib/teams";
+import Image from "next/image";
 import Shirt from "./Shirt";
 import TeamLogo from "./TeamLogo";
 
@@ -60,7 +61,7 @@ export default async function Squad({
                 {players.map((p) => (
                   <li
                     key={p.id}
-                    className="flex flex-col items-center rounded-lg bg-bg px-2 pt-3 pb-2 text-center"
+                    className="relative flex flex-col items-center rounded-lg bg-bg px-2 pt-3 pb-2 text-center"
                   >
                     <div className="w-full max-w-[72px]">
                       <Shirt
@@ -77,6 +78,21 @@ export default async function Squad({
                     <p className="text-[11px] text-muted">
                       {p.number != null ? `#${p.number}` : "No number"}
                     </p>
+                    {p.nationality && (
+                      <span
+                        title={p.nationality.country}
+                        className="absolute right-2 bottom-2 h-[18px] w-[18px] overflow-hidden rounded-full ring-1 ring-black/15 dark:ring-white/20"
+                      >
+                        {/* ESPN flags have a border and padding; zoom in so the flag fills the circle. */}
+                        <Image
+                          src={p.nationality.flag}
+                          alt={p.nationality.country}
+                          width={40}
+                          height={40}
+                          className="h-full w-full scale-[1.9] object-cover"
+                        />
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

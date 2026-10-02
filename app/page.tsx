@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Squad, { SquadSkeleton } from "@/components/Squad";
 import TeamsBar, { BarMessage, TeamsBarSkeleton } from "@/components/TeamsBar";
 import TeamsTable, { TeamsTableSkeleton } from "@/components/TeamsTable";
+import { REVEAL } from "@/components/sidebar";
 import { getLeagues } from "@/lib/leagues";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -30,7 +31,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[4.25rem_minmax(0,1fr)]">
         <main
           aria-label="Main content"
           className="min-h-96 overflow-hidden rounded-2xl border border-border bg-surface lg:order-2"
@@ -48,17 +49,18 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </p>
           )}
         </main>
-        {/* Desktop: teams table in the left sidebar. */}
+        {/* Desktop: teams sidebar, collapsed to a logo strip; widens over the
+            main section while hovered or keyboard-focused, without reflowing it. */}
         <aside
-          aria-label="Sidebar"
-          className="hidden self-start overflow-hidden rounded-2xl border border-border bg-surface lg:block"
+          aria-label="Teams"
+          className="group/teams relative z-30 hidden w-[4.25rem] self-start overflow-hidden rounded-2xl border border-border bg-surface transition-[width,box-shadow] duration-200 ease-out hover:w-80 hover:shadow-xl has-[:focus-visible]:w-80 has-[:focus-visible]:shadow-xl lg:block"
         >
           {selected ? (
             <Suspense key={selected.slug} fallback={<TeamsTableSkeleton />}>
               <TeamsTable leagueSlug={selected.slug} leagueName={selected.name} />
             </Suspense>
           ) : (
-            <p className="px-4 py-10 text-center text-sm text-muted">
+            <p className={`w-80 px-4 py-10 text-center text-sm text-muted ${REVEAL}`}>
               Select a league to see its teams.
             </p>
           )}

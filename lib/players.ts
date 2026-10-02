@@ -9,6 +9,7 @@ export interface Player {
   shirtName: string;
   number: number | null;
   position: Position;
+  nationality: { country: string; flag: string } | null;
 }
 
 export interface Squad {
@@ -29,6 +30,8 @@ interface EspnRoster {
     lastName?: string;
     jersey?: string;
     position?: { abbreviation?: string };
+    citizenship?: string;
+    flag?: { href?: string; alt?: string };
   }[];
 }
 
@@ -61,6 +64,9 @@ export async function getSquad(leagueSlug: string, teamId: string): Promise<Squa
         shirtName: toShirtName(a.displayName, a.lastName),
         number: Number.isFinite(n) ? n : null,
         position: toPosition(a.position?.abbreviation),
+        nationality: a.flag?.href
+          ? { country: a.flag.alt ?? a.citizenship ?? "", flag: a.flag.href }
+          : null,
       };
     })
     // By squad number; players without one go last.

@@ -23,12 +23,12 @@ Leagues are configured in `lib/leagues.ts`. Only LaLiga is currently `available`
 ## Layout
 
 - **Header**: app name and league dropdown with logos.
-- **Left sidebar (desktop, 1024px and up)**: the selected league's teams with logos, alphabetically, from `https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/teams` (cached for 6h). Logos switch to ESPN's dark variants in dark mode.
+- **Left sidebar (desktop, 1024px and up)**: collapsed to a strip of team logos; it widens over the main section while hovered (or keyboard-focused) to show names and codes. Lists the selected league's teams with logos, alphabetically, from `https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/teams` (cached for 6h). Logos switch to ESPN's dark variants in dark mode.
 - **Teams bar (below 1024px)**: the sidebar is hidden and the teams appear in a dropdown in a bar under the header instead.
 - **Main section (right)**: the selected team's current squad, grouped by position and ordered by squad number. Each player is drawn as a small shirt-back icon in the team's kit, with their name and number. Full width below 1024px.
 
 ## Squads and kits
 
-- Squads come from `https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/teams/{teamId}/roster` (current season, cached for 1h), including squad numbers and positions.
+- Squads come from `https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/teams/{teamId}/roster` (current season, cached for 1h), including squad numbers, positions and nationality. Each tile shows the player's nationality as a small round flag (ESPN's flag image, zoomed to fill the circle) in the bottom-right corner; hover it for the country name.
 - No free API publishes kit designs, so each club's home kit is defined by hand in `lib/kits.ts`: pattern (`solid`, `stripes`, `hoops`, `sash`, `band`) and colours for the shirt, sleeves, trim and lettering. All 20 LaLiga clubs are defined. These follow each club's traditional home design; seasonal details such as gradients or trim aren't modelled. Clubs without an entry get a plain shirt in ESPN's team colour.
 - Shirt names use the player's surname, or their single name for players like Pedri and Gavi. The lettering uses the Oswald font.
