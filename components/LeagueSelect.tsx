@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import type { League } from "@/lib/leagues";
+import { useT } from "./I18nProvider";
 
 export default function LeagueSelect({
   leagues,
@@ -13,6 +14,7 @@ export default function LeagueSelect({
   selected: string | null;
 }) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -82,13 +84,13 @@ export default function LeagueSelect({
   };
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0">
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        aria-label={current ? `League: ${current.name}` : "Select a league"}
+        aria-label={current ? t.leagueLabel(current.name) : t.selectLeague}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -96,28 +98,30 @@ export default function LeagueSelect({
             openList();
           }
         }}
-        className="flex items-center gap-3 sm:min-w-56 rounded-xl border border-white/15 bg-white/5 py-1.5 pr-3 pl-2 text-left transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="flex max-w-full items-center gap-3 sm:min-w-56 rounded-xl border border-white/15 bg-white/5 py-1.5 pr-3 pl-2 text-left transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >
         {current ? (
           <>
-            <LeagueLogo league={current} size={32} />
+            <LeagueLogo league={current} size={35} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">{current.name}</span>
-              <span className="hidden text-xs text-white/60 sm:block">{current.country}</span>
+              <span className="hidden text-xs text-white/60 sm:block">
+                {t.leagueCountry(current.country)}
+              </span>
             </span>
           </>
         ) : (
           <>
             <span
               aria-hidden
-              className="h-8 w-8 shrink-0 rounded-full border-2 border-dashed border-white/25"
+              className="h-[2.2rem] w-[2.2rem] shrink-0 rounded-full border-2 border-dashed border-white/25"
             />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-white/80">
-                Select a league
+                {t.selectLeague}
               </span>
               <span className="hidden text-xs text-white/50 sm:block">
-                {leagues.length} European leagues
+                {t.europeanLeagues(leagues.length)}
               </span>
             </span>
           </>
@@ -125,7 +129,7 @@ export default function LeagueSelect({
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className={`h-4 w-4 text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-[1.1rem] w-[1.1rem] text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
         >
           <path
             d="M5 7.5l5 5 5-5"
@@ -144,7 +148,7 @@ export default function LeagueSelect({
           id={listId}
           role="listbox"
           tabIndex={-1}
-          aria-label="Select a league"
+          aria-label={t.selectLeague}
           aria-activedescendant={`${listId}-${active}`}
           onKeyDown={onListKeyDown}
           className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/10 bg-header-2 py-1 shadow-2xl outline-none sm:left-0 sm:right-auto"
@@ -166,13 +170,13 @@ export default function LeagueSelect({
                     : "cursor-not-allowed opacity-45"
                 }`}
               >
-                <LeagueLogo league={l} size={28} />
+                <LeagueLogo league={l} size={31} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{l.name}</span>
-                  <span className="block text-xs text-white/60">{l.country}</span>
+                  <span className="block text-xs text-white/60">{t.leagueCountry(l.country)}</span>
                 </span>
                 {isSelected ? (
-                  <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4 text-accent">
+                  <svg aria-hidden viewBox="0 0 20 20" className="h-[1.1rem] w-[1.1rem] text-accent">
                     <path
                       d="M4.5 10.5l3.5 3.5 7.5-8"
                       fill="none"
@@ -184,8 +188,8 @@ export default function LeagueSelect({
                   </svg>
                 ) : (
                   !l.available && (
-                    <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/70">
-                      Soon
+                    <span className="rounded-full border border-white/20 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white/70">
+                      {t.soon}
                     </span>
                   )
                 )}
@@ -203,7 +207,7 @@ function LeagueLogo({ league, size }: { league: League; size: number }) {
     return (
       <span
         aria-hidden
-        className="flex shrink-0 items-center justify-center rounded-md bg-white/10 text-[10px] font-bold"
+        className="flex shrink-0 items-center justify-center rounded-md bg-white/10 text-[11px] font-bold"
         style={{ width: size, height: size }}
       >
         {league.name.slice(0, 2).toUpperCase()}

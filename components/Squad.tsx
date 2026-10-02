@@ -1,6 +1,10 @@
-import { getKit } from "@/lib/kits";
+import { getFormation } from "@/lib/formation";
+import { getMessages, type Locale } from "@/lib/i18n";
+import { getKitSet } from "@/lib/kits";
+import { getManager } from "@/lib/manager";
 import { getSquad, type Squad as SquadData } from "@/lib/players";
 import { getTeams } from "@/lib/teams";
+import { getWikiKits } from "@/lib/wikiKits";
 import { getWorldMap, locateCountry } from "@/lib/worldMap";
 import type { CountryMarker } from "./NationalityMap";
 import SquadBoard from "./SquadBoard";
@@ -9,25 +13,40 @@ import TeamLogo from "./TeamLogo";
 export default async function Squad({
   leagueSlug,
   teamId,
+  locale,
 }: {
   leagueSlug: string;
   teamId: string;
+  locale: Locale;
 }) {
+  const t = getMessages(locale);
   let squad: SquadData;
   try {
-    squad = await getSquad(leagueSlug, teamId);
+    squad = await getSquad(leagueSlug, teamId, locale);
   } catch (err) {
     console.error(err);
-    return (
-      <p className="px-6 py-16 text-center text-sm text-muted">
-        Couldn&apos;t load this squad right now. Try again shortly.
-      </p>
-    );
+    return <p className="px-6 py-16 text-center text-sm text-muted">{t.squadLoadError}</p>;
   }
 
   // Cached alongside the teams list, so this doesn't refetch.
-  const team = (await getTeams(leagueSlug).catch(() => [])).find((t) => t.id === teamId);
-  const kit = getKit(teamId, squad.teamColor);
+  const team = (await getTeams(leagueSlug).catch(() => [])).find((x) => x.id === teamId);
+  const kits = getKitSet(teamId, squad.teamColor);
+  // Also streamed: the current manager (Wikipedia/Wikidata).
+  const manager = getManager(teamId, locale).catch((err) => {
+    console.error(err);
+    return null;
+  });
+  // Also streamed: current-season kit images from Wikipedia (drawn kits if unavailable).
+  const wikiKits = getWikiKits(teamId).catch((err) => {
+    console.error(err);
+    return null;
+  });
+  // Not awaited: the pitch streams in after the squad, as its analysis reads
+  // several match summaries.
+  const formation = getFormation(leagueSlug, teamId, squad.players).catch((err) => {
+    console.error(err);
+    return null;
+  });
 
   // One map marker per nationality, pinned on that country.
   const byCountry = new Map<string, CountryMarker>();
@@ -42,6 +61,7 @@ export default async function Squad({
     if (!point) continue;
     byCountry.set(p.nationality.country, {
       country: p.nationality.country,
+      name: p.nationality.name,
       flag: p.nationality.flag,
       count: 1,
       ...point,
@@ -50,32 +70,38 @@ export default async function Squad({
   const markers = [...byCountry.values()].sort((a, b) => b.count - a.count);
 
   return (
-    <section aria-label={`${squad.teamName} squad`}>
+    <section aria-label={`${squad.teamName} — ${t.squad}`}>
       <SquadBoard
         heading={
           <>
-            {team && <TeamLogo team={team} size={40} />}
+            {team && <TeamLogo team={team} size={44} />}
             <div className="min-w-0">
               <h2 className="truncate text-lg font-bold">{squad.teamName}</h2>
               <p className="text-xs text-muted">
-                {squad.season && `${squad.season} squad · `}
-                {squad.players.length} players
+                {squad.season && `${t.seasonSquad(squad.season)} · `}
+                {t.players(squad.players.length)}
               </p>
             </div>
           </>
         }
         players={squad.players}
-        kit={kit}
+        kits={kits}
+        team={team}
+        teamName={squad.teamName}
         map={getWorldMap()}
         markers={markers}
+        formation={formation}
+        wikiKits={wikiKits}
+        manager={manager}
+        season={squad.season}
       />
     </section>
   );
 }
 
-export function SquadSkeleton() {
+export function SquadSkeleton({ label }: { label: string }) {
   return (
-    <div aria-busy aria-label="Loading squad">
+    <div aria-busy aria-label={label}>
       <div className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
         <div className="h-10 w-10 animate-pulse rounded-full bg-border" />
         <div className="space-y-2">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import FlagCircle from "./FlagCircle";
+import { useT } from "./I18nProvider";
 
 export interface MapData {
   width: number;
@@ -10,7 +11,10 @@ export interface MapData {
 }
 
 export interface CountryMarker {
+  /** English name: the key shared with players' nationalities. */
   country: string;
+  /** Display name in the page's language. */
+  name: string;
   flag: string;
   count: number;
   /** Anchor in map units. */
@@ -106,6 +110,7 @@ export default function NationalityMap({
   previewed?: string | null;
   onSelect: (country: string) => void;
 }) {
+  const t = useT();
   const boxRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number | null>(null);
   const [view, setViewState] = useState<View>(HOME);
@@ -228,7 +233,13 @@ export default function NationalityMap({
     pointers.current.set(e.pointerId, local(e));
     const pts = [...pointers.current.values()];
     if (pts.length === 1) {
-      gesture.current = { kind: "pan", x: pts[0].x, y: pts[0].y, start: viewRef.current, moved: false };
+      gesture.current = {
+        kind: "pan",
+        x: pts[0].x,
+        y: pts[0].y,
+        start: viewRef.current,
+        moved: false,
+      };
     } else if (pts.length === 2) {
       const [a, b] = pts;
       const start = viewRef.current;
@@ -287,7 +298,10 @@ export default function NationalityMap({
   const tinted = new Set(markers.map((m) => m.countryKey).filter(Boolean));
   const selectedKey = markers.find((m) => m.country === selected)?.countryKey ?? null;
   const previewedKey = markers.find((m) => m.country === previewed)?.countryKey ?? null;
-  const r = width && width < 640 ? 9 : 11;
+  // Marker radius: smaller at the whole-world view (70%), growing to full size
+  // by 2× zoom, so the unzoomed map isn't crowded with flags.
+  const fullR = width && width < 640 ? 10 : 12;
+  const r = Math.round(fullR * Math.min(1, 0.7 + 0.3 * (view.k - 1)));
 
   // Marker anchors on screen at the current zoom; off-screen countries are skipped.
   const anchors = width
@@ -349,8 +363,8 @@ export default function NationalityMap({
                     : c.key === previewedKey
                       ? "color-mix(in oklab, var(--accent) 55%, var(--border))"
                       : tinted.has(c.key)
-                      ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
-                      : "var(--border)",
+                        ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
+                        : "var(--border)",
               }}
             />
           ))}
@@ -383,7 +397,7 @@ export default function NationalityMap({
         const isSelected = p.marker.country === selected;
         const isPreviewed = !isSelected && p.marker.country === previewed;
         const dimmed = selected !== null && !isSelected && !isPreviewed;
-        const label = `${p.marker.country}: ${p.marker.count} player${p.marker.count === 1 ? "" : "s"}`;
+        const label = t.markerLabel(p.marker.name, p.marker.count);
         return (
           <button
             key={p.marker.country}
@@ -403,7 +417,7 @@ export default function NationalityMap({
           >
             <FlagCircle src={p.marker.flag} country="" size={r * 2} className="shadow-sm" />
             {p.marker.count > 1 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-text px-0.5 text-[9px] leading-none font-bold text-surface">
+              <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-text px-0.5 text-[10px] leading-none font-bold text-surface">
                 {p.marker.count}
               </span>
             )}
@@ -417,20 +431,24 @@ export default function NationalityMap({
         onPointerDown={(e) => e.stopPropagation()}
         onDoubleClick={(e) => e.stopPropagation()}
       >
-        <ZoomButton label="Zoom in" disabled={view.k >= MAX_ZOOM - 0.001} onClick={() => zoomBy(2)}>
+        <ZoomButton
+          label={t.zoomIn}
+          disabled={view.k >= MAX_ZOOM - 0.001}
+          onClick={() => zoomBy(2)}
+        >
           <path d="M10 4v12M4 10h12" />
         </ZoomButton>
-        <ZoomButton label="Zoom out" disabled={!zoomed} onClick={() => zoomBy(0.5)}>
+        <ZoomButton label={t.zoomOut} disabled={!zoomed} onClick={() => zoomBy(0.5)}>
           <path d="M4 10h12" />
         </ZoomButton>
-        <ZoomButton label="Reset zoom" disabled={!zoomed} onClick={() => animateTo(HOME)}>
+        <ZoomButton label={t.resetZoom} disabled={!zoomed} onClick={() => animateTo(HOME)}>
           <path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4" />
         </ZoomButton>
       </div>
 
-      <p className="pointer-events-none absolute bottom-1.5 left-2 text-[10px] text-muted">
-        <span className="pointer-coarse:hidden">Ctrl/⌘ + scroll or pinch to zoom · drag to pan</span>
-        <span className="hidden pointer-coarse:inline">Pinch to zoom · drag to pan</span>
+      <p className="pointer-events-none absolute bottom-1.5 left-2 text-[11px] text-muted">
+        <span className="pointer-coarse:hidden">{t.zoomHintPointer}</span>
+        <span className="hidden pointer-coarse:inline">{t.zoomHintTouch}</span>
       </p>
     </div>
   );
@@ -454,11 +472,11 @@ function ZoomButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center border-b border-border text-muted transition-colors hover:text-text last:border-b-0 hover:bg-bg disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
+      className="flex h-[1.925rem] w-[1.925rem] items-center justify-center border-b border-border text-muted transition-colors hover:text-text last:border-b-0 hover:bg-bg disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
     >
       <svg
         viewBox="0 0 20 20"
-        className="h-3.5 w-3.5"
+        className="h-[0.9625rem] w-[0.9625rem]"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"

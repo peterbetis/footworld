@@ -35,6 +35,14 @@
   --color-header-2: var(--header-2);
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
+
+  /* Text 10% larger than Tailwind's defaults (xs 0.75rem … 2xl 1.5rem). */
+  --text-xs: 0.825rem;
+  --text-sm: 0.9625rem;
+  --text-base: 1.1rem;
+  --text-lg: 1.2375rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.65rem;
   --font-mono: var(--font-geist-mono);
 }
 

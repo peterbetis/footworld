@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Team } from "@/lib/teams";
 
-export default function TeamLogo({ team, size = 28 }: { team: Team; size?: number }) {
+export default function TeamLogo({ team, size = 31 }: { team: Team; size?: number }) {
   const style = { width: size, height: size };
   if (!team.logo) {
     return <span aria-hidden className="shrink-0 rounded-full bg-border" style={style} />;

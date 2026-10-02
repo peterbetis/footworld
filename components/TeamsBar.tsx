@@ -1,12 +1,15 @@
+import { getMessages, type Locale } from "@/lib/i18n";
 import { getTeams, type Team } from "@/lib/teams";
 import TeamsDropdown from "./TeamsDropdown";
 
 export default async function TeamsBar({
   leagueSlug,
   leagueName,
+  locale,
 }: {
   leagueSlug: string;
   leagueName: string;
+  locale: Locale;
 }) {
   let teams: Team[];
   try {
@@ -14,7 +17,7 @@ export default async function TeamsBar({
     teams = await getTeams(leagueSlug);
   } catch (err) {
     console.error(err);
-    return <BarMessage>Couldn&apos;t load teams right now. Try again shortly.</BarMessage>;
+    return <BarMessage>{getMessages(locale).teamsLoadError}</BarMessage>;
   }
   return <TeamsDropdown leagueName={leagueName} teams={teams} />;
 }
@@ -28,11 +31,11 @@ export function BarMessage({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function TeamsBarSkeleton() {
+export function TeamsBarSkeleton({ label }: { label: string }) {
   return (
     <div
       aria-busy
-      aria-label="Loading teams"
+      aria-label={label}
       className="flex min-h-[50px] items-center gap-3 rounded-xl border border-border px-2"
     >
       <div className="h-8 w-8 animate-pulse rounded-full bg-border" />

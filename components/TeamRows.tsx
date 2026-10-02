@@ -2,19 +2,21 @@
 
 import type { Team } from "@/lib/teams";
 import { useSelectedTeam } from "@/lib/useSelectedTeam";
+import { useT } from "./I18nProvider";
 import TeamLogo from "./TeamLogo";
 import { REVEAL } from "./sidebar";
 
 export default function TeamRows({ teams }: { teams: Team[] }) {
   const { selectedId, toggle } = useSelectedTeam();
+  const t = useT();
 
   return (
     // Fixed at the expanded width so nothing reflows while the sidebar animates.
     <table className="w-80 text-sm">
       <thead className="sr-only">
         <tr>
-          <th scope="col">Team</th>
-          <th scope="col">Code</th>
+          <th scope="col">{t.teamColumn}</th>
+          <th scope="col">{t.codeColumn}</th>
         </tr>
       </thead>
       <tbody>
@@ -24,13 +26,11 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
             <tr
               key={t.id}
               className={`relative border-t border-border transition-colors first:border-t-0 has-[:focus-visible]:bg-bg ${
-                selected
-                  ? "bg-accent/10 shadow-[inset_3px_0_0_var(--accent)]"
-                  : "hover:bg-bg"
+                selected ? "bg-accent/10 shadow-[inset_3px_0_0_var(--accent)]" : "hover:bg-bg"
               }`}
             >
               {/* Left padding centres the logo in the collapsed strip. */}
-              <td className="py-2 pl-[19px]">
+              <td className="py-2 pl-[17.5px]">
                 {/* The ::after overlay stretches the button's hit area over the whole row. */}
                 <button
                   type="button"

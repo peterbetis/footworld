@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "./i18n";
 
 export type Position = "G" | "D" | "M" | "F";
 
@@ -9,7 +10,11 @@ export interface Player {
   shirtName: string;
   number: number | null;
   position: Position;
-  nationality: { country: string; flag: string } | null;
+  /**
+   * `country` is ESPN's English name, used as the key (and to place it on the map);
+   * `name` is the same country in the page's language, for display.
+   */
+  nationality: { country: string; name: string; flag: string } | null;
 }
 
 export interface Squad {
@@ -47,11 +52,38 @@ function toShirtName(displayName: string, lastName: string | undefined) {
 }
 
 // ESPN's public (unofficial, keyless) sports API — current-season roster with squad numbers.
-export async function getSquad(leagueSlug: string, teamId: string): Promise<Squad> {
-  const res = await fetch(
-    `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueSlug}/teams/${encodeURIComponent(teamId)}/roster`,
-    { next: { revalidate: 3_600 } }, // squads change with transfers and new signings
-  );
+function rosterUrl(leagueSlug: string, teamId: string, locale: Locale) {
+  const base = `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueSlug}/teams/${encodeURIComponent(teamId)}/roster`;
+  return locale === "en" ? base : `${base}?lang=${locale}&region=${locale}`;
+}
+
+// Country names in the page's language, by player id. ESPN localises them when
+// asked; the English roster stays the source of truth for everything else.
+async function localizedCountries(leagueSlug: string, teamId: string, locale: Locale) {
+  if (locale === "en") return new Map<string, string>();
+  try {
+    const res = await fetch(rosterUrl(leagueSlug, teamId, locale), { next: { revalidate: 3_600 } });
+    if (!res.ok) return new Map<string, string>();
+    const data: EspnRoster = await res.json();
+    return new Map(
+      (data.athletes ?? []).flatMap((a) => (a.flag?.alt ? [[a.id, a.flag.alt] as const] : [])),
+    );
+  } catch {
+    return new Map<string, string>();
+  }
+}
+
+export async function getSquad(
+  leagueSlug: string,
+  teamId: string,
+  locale: Locale = "en",
+): Promise<Squad> {
+  const [res, names] = await Promise.all([
+    fetch(rosterUrl(leagueSlug, teamId, "en"), {
+      next: { revalidate: 3_600 }, // squads change with transfers and new signings
+    }),
+    localizedCountries(leagueSlug, teamId, locale),
+  ]);
   if (!res.ok) throw new Error(`ESPN roster ${res.status} for ${leagueSlug}/${teamId}`);
   const data: EspnRoster = await res.json();
 
@@ -65,7 +97,10 @@ export async function getSquad(leagueSlug: string, teamId: string): Promise<Squa
         number: Number.isFinite(n) ? n : null,
         position: toPosition(a.position?.abbreviation),
         nationality: a.flag?.href
-          ? { country: a.flag.alt ?? a.citizenship ?? "", flag: a.flag.href }
+          ? (() => {
+              const country = a.flag.alt ?? a.citizenship ?? "";
+              return { country, name: names.get(a.id) ?? country, flag: a.flag.href };
+            })()
           : null,
       };
     })

@@ -81,3 +81,85 @@ export function getKit(teamId: string, teamColor: string): Kit {
   const print = isDark(base) ? "#ffffff" : "#111111";
   return { pattern: "solid", base, accent: base, trim: print, print };
 }
+
+/* ---------- change kits ---------- */
+
+const solid = (base: string, trim: string, print: string): Kit => ({
+  pattern: "solid",
+  base,
+  accent: base,
+  trim,
+  print,
+});
+
+/**
+ * Away and third kits by ESPN team id. Illustrations only: they use colours
+ * each club commonly wears for its change kits, not confirmed 2026-27 designs,
+ * so correct any entry here if it doesn't match the real kit.
+ */
+const CHANGE_KITS: Record<string, { away: Kit; third: Kit }> = {
+  // LaLiga
+  "96": { away: solid("#141414", "#0057b8", "#ffffff"), third: solid("#f08c00", "#0a2240", "#0a2240") }, // Alavés
+  "93": { away: solid("#111111", "#e30613", "#ffffff"), third: solid("#1f7a4d", "#ffffff", "#ffffff") }, // Athletic Club
+  "1068": { away: solid("#1c2c5b", "#cb3524", "#ffffff"), third: solid("#0e7c86", "#1c2c5b", "#ffffff") }, // Atlético Madrid
+  "83": { away: solid("#e9c46a", "#a50044", "#004d98"), third: solid("#0b1f3a", "#edbb00", "#edbb00") }, // Barcelona
+  "85": { away: solid("#c8102e", "#ffffff", "#ffffff"), third: solid("#0b2341", "#8bc4eb", "#8bc4eb") }, // Celta Vigo
+  "90": { away: solid("#111111", "#1d5ba4", "#ffffff"), third: solid("#5b2a86", "#ffffff", "#ffffff") }, // Deportivo
+  "3751": { away: solid("#00843d", "#ffffff", "#ffffff"), third: solid("#111111", "#00843d", "#ffffff") }, // Elche
+  "88": { away: solid("#f26b21", "#0a2240", "#0a2240"), third: solid("#111111", "#0072ce", "#ffffff") }, // Espanyol
+  "2922": { away: solid("#ffffff", "#005fae", "#005fae"), third: solid("#c8102e", "#ffffff", "#ffffff") }, // Getafe
+  "1538": { away: solid("#ffffff", "#b4053f", "#00428e"), third: solid("#7cc6ea", "#00428e", "#00428e") }, // Levante
+  "99": { away: solid("#111111", "#2b7bc4", "#ffffff"), third: solid("#c9a227", "#111111", "#111111") }, // Málaga
+  "97": { away: solid("#ffffff", "#0a2240", "#0a2240"), third: solid("#0a2240", "#d50032", "#ffffff") }, // Osasuna
+  "87": { away: solid("#00843d", "#ffffff", "#ffffff"), third: solid("#111111", "#00843d", "#ffffff") }, // Racing Santander
+  "101": {
+    away: { pattern: "sash", base: "#111111", accent: "#e53027", trim: "#e53027", print: "#ffffff", printOutline: "#111111" },
+    third: { pattern: "sash", base: "#e53027", accent: "#ffffff", trim: "#ffffff", print: "#ffffff", printOutline: "#111111" },
+  }, // Rayo Vallecano
+  "244": { away: solid("#111111", "#00954c", "#00954c"), third: solid("#7fcfd3", "#0a3d2a", "#0a3d2a") }, // Real Betis
+  "86": { away: solid("#1b2a4a", "#d4af37", "#d4af37"), third: solid("#111111", "#f2c14e", "#f2c14e") }, // Real Madrid
+  "89": { away: solid("#111111", "#f2c300", "#f2c300"), third: solid("#f2c300", "#0067b1", "#0067b1") }, // Real Sociedad
+  "243": { away: solid("#d81022", "#ffffff", "#ffffff"), third: solid("#111111", "#d81022", "#ffffff") }, // Sevilla
+  "94": { away: solid("#111111", "#ee7203", "#ffffff"), third: solid("#ee7203", "#111111", "#111111") }, // Valencia
+  "102": { away: solid("#005187", "#ffe667", "#ffe667"), third: solid("#ffffff", "#ffe667", "#005187") }, // Villarreal
+
+  // Premier League
+  "349": { away: solid("#ffffff", "#111111", "#111111"), third: solid("#e8a0bf", "#111111", "#111111") }, // AFC Bournemouth
+  "359": { away: solid("#f2c14e", "#063672", "#063672"), third: solid("#0b1f3a", "#9c824a", "#ffffff") }, // Arsenal
+  "362": { away: solid("#ffffff", "#670e36", "#670e36"), third: solid("#111111", "#95bfe5", "#95bfe5") }, // Aston Villa
+  "337": { away: solid("#0f1c3f", "#e30613", "#ffffff"), third: solid("#f2c300", "#111111", "#111111") }, // Brentford
+  "331": { away: solid("#f2c300", "#0a2240", "#0a2240"), third: solid("#111111", "#0057b8", "#ffffff") }, // Brighton & Hove Albion
+  "363": { away: solid("#ffffff", "#034694", "#034694"), third: solid("#1c1c1c", "#d1d3d4", "#ffffff") }, // Chelsea
+  "388": { away: solid("#0b2341", "#6cbce6", "#6cbce6"), third: solid("#ffffff", "#6cbce6", "#0b2341") }, // Coventry City
+  "384": { away: solid("#ffffff", "#c4122e", "#1b458f"), third: solid("#f2c300", "#1b458f", "#1b458f") }, // Crystal Palace
+  "368": { away: solid("#f2a900", "#0a2240", "#0a2240"), third: solid("#ffffff", "#003399", "#003399") }, // Everton
+  "370": { away: solid("#111111", "#ffffff", "#ffffff"), third: solid("#cc0000", "#111111", "#ffffff") }, // Fulham
+  "306": { away: solid("#1a1a1a", "#f5a12d", "#f5a12d"), third: solid("#ffffff", "#1a1a1a", "#1a1a1a") }, // Hull City
+  "373": { away: solid("#de2c37", "#ffffff", "#ffffff"), third: solid("#111111", "#0044a9", "#ffffff") }, // Ipswich Town
+  "357": { away: solid("#1d428a", "#ffcd00", "#ffcd00"), third: solid("#ffcd00", "#1d428a", "#1d428a") }, // Leeds United
+  "364": { away: solid("#f5f5f0", "#c8102e", "#c8102e"), third: solid("#111111", "#d4af37", "#ffffff") }, // Liverpool
+  "382": { away: solid("#1c2c5b", "#6cabdd", "#ffffff"), third: solid("#ffffff", "#6cabdd", "#1c2c5b") }, // Manchester City
+  "360": { away: solid("#ffffff", "#111111", "#111111"), third: solid("#0b1f3a", "#da291c", "#ffffff") }, // Manchester United
+  "361": { away: solid("#0b1b3d", "#ffffff", "#ffffff"), third: solid("#2e7d4f", "#ffffff", "#ffffff") }, // Newcastle United
+  "393": { away: solid("#ffffff", "#dd0000", "#dd0000"), third: solid("#111111", "#dd0000", "#ffffff") }, // Nottingham Forest
+  "366": { away: solid("#111111", "#eb172b", "#ffffff"), third: solid("#ffffff", "#eb172b", "#eb172b") }, // Sunderland
+  "367": { away: solid("#132257", "#ffffff", "#ffffff"), third: solid("#b8a9d9", "#132257", "#132257") }, // Tottenham Hotspur
+};
+
+export interface KitSet {
+  home: Kit;
+  away: Kit;
+  /** Clubs without a defined third kit show home and away only. */
+  third: Kit | null;
+}
+
+/** Home, away and third kits; unknown clubs get a plain contrasting away kit. */
+export function getKitSet(teamId: string, teamColor: string): KitSet {
+  const home = getKit(teamId, teamColor);
+  const change = CHANGE_KITS[teamId];
+  if (change) return { home, ...change };
+  const away = isDark(home.base)
+    ? solid("#ffffff", home.base, home.base)
+    : solid("#111827", home.base, "#ffffff");
+  return { home, away, third: null };
+}

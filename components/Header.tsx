@@ -12,10 +12,10 @@ export default function Header({
   return (
     <header className="bg-header text-white shadow-md">
       <div className="mx-auto flex max-w-7xl items-center gap-4 sm:gap-6 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span
             aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-lg"
+            className="flex h-[2.475rem] w-[2.475rem] items-center justify-center rounded-full bg-accent text-lg"
           >
             ⚽
           </span>
@@ -23,7 +23,8 @@ export default function Header({
             Foot<span className="text-accent">World</span>
           </span>
         </Link>
-        <div className="ml-auto sm:ml-0">
+        {/* min-w-0 lets the picker shrink (its label truncates) on narrow phones. */}
+        <div className="ml-auto min-w-0 sm:ml-0">
           <LeagueSelect leagues={leagues} selected={selected} />
         </div>
       </div>

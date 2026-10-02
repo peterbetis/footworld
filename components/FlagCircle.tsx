@@ -6,11 +6,14 @@ export default function FlagCircle({
   country,
   size,
   className = "",
+  padded = true,
 }: {
   src: string;
   country: string;
   size: number;
   className?: string;
+  /** ESPN flags have a border and padding that must be zoomed past; Wikimedia flags don't. */
+  padded?: boolean;
 }) {
   return (
     <span
@@ -23,7 +26,7 @@ export default function FlagCircle({
         alt={country}
         width={size * 2}
         height={size * 2}
-        className="h-full w-full scale-[1.9] object-cover"
+        className={`h-full w-full object-cover ${padded ? "scale-[1.9]" : ""}`}
       />
     </span>
   );

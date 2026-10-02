@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { Team } from "@/lib/teams";
 import { useSelectedTeam } from "@/lib/useSelectedTeam";
+import { useT } from "./I18nProvider";
 import TeamLogo from "./TeamLogo";
 
 /** Compact team picker for small screens; the sidebar table replaces it on desktop. */
@@ -15,6 +16,7 @@ export default function TeamsDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const { selectedId, toggle } = useSelectedTeam();
+  const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const panelId = useId();
@@ -24,9 +26,7 @@ export default function TeamsDropdown({
   useEffect(() => {
     if (!open) return;
     // Bring the selected team into view when the list opens.
-    listRef.current
-      ?.querySelector('[aria-pressed="true"]')
-      ?.scrollIntoView({ block: "nearest" });
+    listRef.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest" });
 
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
@@ -48,42 +48,42 @@ export default function TeamsDropdown({
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={selected ? `Team: ${selected.name}` : `Select a ${leagueName} team`}
+        aria-label={selected ? t.teamLabel(selected.name) : t.selectLeagueTeam(leagueName)}
         onClick={() => setOpen((o) => !o)}
         className={`flex w-full items-center gap-3 rounded-xl border bg-bg py-1.5 pr-3 pl-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
           selected ? "border-accent/60" : "border-border hover:border-muted/40"
         }`}
       >
         {selected ? (
-          <span className="flex h-8 w-8 items-center justify-center" aria-hidden>
-            <TeamLogo team={selected} size={28} />
+          <span className="flex h-[2.2rem] w-[2.2rem] items-center justify-center" aria-hidden>
+            <TeamLogo team={selected} size={31} />
           </span>
         ) : (
           <span className="flex -space-x-2" aria-hidden>
             {teams.slice(0, 3).map((t) => (
               <span
                 key={t.id}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface ring-2 ring-bg"
+                className="flex h-[2.2rem] w-[2.2rem] items-center justify-center rounded-full bg-surface ring-2 ring-bg"
               >
-                <TeamLogo team={t} size={22} />
+                <TeamLogo team={t} size={24} />
               </span>
             ))}
           </span>
         )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold">
-            {selected ? selected.name : `${leagueName} teams`}
+            {selected ? selected.name : t.leagueTeams(leagueName)}
           </span>
           <span className="block text-xs text-muted">
             {selected
-              ? `${leagueName} · ${teams.length} clubs`
-              : `Select a team · ${teams.length} clubs`}
+              ? `${leagueName} · ${t.clubs(teams.length)}`
+              : `${t.selectATeam} · ${t.clubs(teams.length)}`}
           </span>
         </span>
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className={`h-4 w-4 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-[1.1rem] w-[1.1rem] text-muted transition-transform ${open ? "rotate-180" : ""}`}
         >
           <path
             d="M5 7.5l5 5 5-5"
@@ -100,7 +100,7 @@ export default function TeamsDropdown({
         <ul
           ref={listRef}
           id={panelId}
-          aria-label={`${leagueName} teams`}
+          aria-label={t.leagueTeams(leagueName)}
           className="absolute inset-x-0 z-40 mt-2 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-surface py-1 shadow-xl"
         >
           {teams.map((t) => {
@@ -115,9 +115,7 @@ export default function TeamsDropdown({
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors focus-visible:bg-bg focus-visible:outline-none ${
-                    isSelected
-                      ? "bg-accent/10 shadow-[inset_3px_0_0_var(--accent)]"
-                      : "hover:bg-bg"
+                    isSelected ? "bg-accent/10 shadow-[inset_3px_0_0_var(--accent)]" : "hover:bg-bg"
                   }`}
                 >
                   <TeamLogo team={t} />
