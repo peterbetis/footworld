@@ -1,16 +1,10 @@
 import { getKit } from "@/lib/kits";
-import { getSquad, type Position, type Squad as SquadData } from "@/lib/players";
+import { getSquad, type Squad as SquadData } from "@/lib/players";
 import { getTeams } from "@/lib/teams";
-import Image from "next/image";
-import Shirt from "./Shirt";
+import { getWorldMap, locateCountry } from "@/lib/worldMap";
+import type { CountryMarker } from "./NationalityMap";
+import SquadBoard from "./SquadBoard";
 import TeamLogo from "./TeamLogo";
-
-const GROUPS: { position: Position; title: string }[] = [
-  { position: "G", title: "Goalkeepers" },
-  { position: "D", title: "Defenders" },
-  { position: "M", title: "Midfielders" },
-  { position: "F", title: "Forwards" },
-];
 
 export default async function Squad({
   leagueSlug,
@@ -35,6 +29,26 @@ export default async function Squad({
   const team = (await getTeams(leagueSlug).catch(() => [])).find((t) => t.id === teamId);
   const kit = getKit(teamId, squad.teamColor);
 
+  // One map marker per nationality, pinned on that country.
+  const byCountry = new Map<string, CountryMarker>();
+  for (const p of squad.players) {
+    if (!p.nationality) continue;
+    const existing = byCountry.get(p.nationality.country);
+    if (existing) {
+      existing.count++;
+      continue;
+    }
+    const point = locateCountry(p.nationality.country);
+    if (!point) continue;
+    byCountry.set(p.nationality.country, {
+      country: p.nationality.country,
+      flag: p.nationality.flag,
+      count: 1,
+      ...point,
+    });
+  }
+  const markers = [...byCountry.values()].sort((a, b) => b.count - a.count);
+
   return (
     <section aria-label={`${squad.teamName} squad`}>
       <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
@@ -48,58 +62,7 @@ export default async function Squad({
         </div>
       </header>
 
-      <div className="space-y-8 px-4 py-5 sm:px-6">
-        {GROUPS.map(({ position, title }) => {
-          const players = squad.players.filter((p) => p.position === position);
-          if (players.length === 0) return null;
-          return (
-            <section key={position} aria-label={title}>
-              <h3 className="mb-3 text-xs font-semibold tracking-wide text-muted uppercase">
-                {title} <span className="font-normal">· {players.length}</span>
-              </h3>
-              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
-                {players.map((p) => (
-                  <li
-                    key={p.id}
-                    className="relative flex flex-col items-center rounded-lg bg-bg px-2 pt-3 pb-2 text-center"
-                  >
-                    <div className="w-full max-w-[72px]">
-                      <Shirt
-                        kit={kit}
-                        name={p.shirtName}
-                        number={p.number}
-                        uid={`shirt-${p.id}`}
-                        label={`${p.name}${p.number != null ? `, number ${p.number}` : ""}`}
-                      />
-                    </div>
-                    <p className="mt-1.5 line-clamp-2 w-full text-xs leading-tight font-semibold" title={p.name}>
-                      {p.name}
-                    </p>
-                    <p className="text-[11px] text-muted">
-                      {p.number != null ? `#${p.number}` : "No number"}
-                    </p>
-                    {p.nationality && (
-                      <span
-                        title={p.nationality.country}
-                        className="absolute right-2 bottom-2 h-[18px] w-[18px] overflow-hidden rounded-full ring-1 ring-black/15 dark:ring-white/20"
-                      >
-                        {/* ESPN flags have a border and padding; zoom in so the flag fills the circle. */}
-                        <Image
-                          src={p.nationality.flag}
-                          alt={p.nationality.country}
-                          width={40}
-                          height={40}
-                          className="h-full w-full scale-[1.9] object-cover"
-                        />
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
+      <SquadBoard players={squad.players} kit={kit} map={getWorldMap()} markers={markers} />
     </section>
   );
 }
