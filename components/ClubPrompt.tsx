@@ -85,6 +85,8 @@ export default function ClubPrompt({
                       alt=""
                       width={44}
                       height={44}
+                      // In view as soon as the prompt opens, so not lazy.
+                      loading="eager"
                       className="h-11 w-11 object-contain"
                     />
                   ) : (

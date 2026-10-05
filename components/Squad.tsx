@@ -75,7 +75,7 @@ export default async function Squad({
   return (
     <section aria-label={`${squad.teamName} — ${t.squad}`}>
       <SquadBoard
-        crest={team && <TeamLogo team={team} size={60} />}
+        crest={team && <TeamLogo team={team} size={60} eager />}
         heading={
           <>
             <div className="min-w-0">
