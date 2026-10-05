@@ -23,6 +23,12 @@ export interface TeamFormation {
   matchesUsed: number;
   matchesAnalysed: number;
   slots: PitchSlot[];
+  /**
+   * Each player's usual spot, by player id: their most common place in this
+   * formation, or for those who only started in other formations, an
+   * approximate spot from their most common position code.
+   */
+  usual: Record<string, { depth: number; lateral: number; starts: number }>;
 }
 
 // Most recent completed league matches to analyse.
@@ -148,6 +154,40 @@ function layout(formation: string, slots: Omit<PitchSlot, "depth" | "lateral">[]
   return placed;
 }
 
+/** Approximate pitch spot for a position code, for players outside the main formation. */
+function spotForCode(code: string) {
+  const depth: Record<number, number> = { 0: 9, 1: 22, 1.5: 29, 2: 36, 3: 50, 4: 64, 5: 72, 6: 80 };
+  return { depth: depth[depthRank(code)] ?? 50, lateral: 50 + lateralRank(code) * 19 };
+}
+
+/** Each player's usual spot across the analysed line-ups (see TeamFormation.usual). */
+function usualSpots(lineups: Lineup[], formation: string, slots: PitchSlot[]) {
+  const inFormation = new Map<string, Map<number, number>>();
+  const codes = new Map<string, Map<string, number>>();
+  const starts = new Map<string, number>();
+  const bump = <K>(m: Map<K, number>, k: K) => m.set(k, (m.get(k) ?? 0) + 1);
+  const tallyFor = <K>(m: Map<string, Map<K, number>>, playerId: string) => {
+    if (!m.has(playerId)) m.set(playerId, new Map());
+    return m.get(playerId)!;
+  };
+  for (const l of lineups) {
+    for (const s of l.starters) {
+      bump(starts, s.playerId);
+      if (l.formation === formation) bump(tallyFor(inFormation, s.playerId), s.place);
+      bump(tallyFor(codes, s.playerId), s.position);
+    }
+  }
+  const most = <K>(m: Map<K, number>) => [...m.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+  const usual: TeamFormation["usual"] = {};
+  for (const [playerId, n] of starts) {
+    const places = inFormation.get(playerId);
+    const slot = places ? slots.find((s) => s.place === most(places)) : undefined;
+    const spot = slot ?? spotForCode(most(codes.get(playerId)!));
+    usual[playerId] = { depth: spot.depth, lateral: spot.lateral, starts: n };
+  }
+  return usual;
+}
+
 /* ---------- public API ---------- */
 
 /**
@@ -220,10 +260,12 @@ export async function getFormation(
     });
   }
 
+  const laidOut = layout(formation, slots);
   return {
     formation,
     matchesUsed: used.length,
     matchesAnalysed: lineups.length,
-    slots: layout(formation, slots),
+    slots: laidOut,
+    usual: usualSpots(lineups, formation, laidOut),
   };
 }

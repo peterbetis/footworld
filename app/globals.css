@@ -10,6 +10,10 @@
   --header: #0b1324;
   --header-2: #131d33;
   --accent: #22c55e;
+  /* World map: Google-Maps-style water, near-white land, soft grey borders. */
+  --map-sea: #aadaff;
+  --map-land: #f8f9fa;
+  --map-border: #c3c9d1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +26,9 @@
     --muted: #98a2b3;
     --header: #060a13;
     --header-2: #111a2e;
+    --map-sea: #6cd1e6;
+    --map-land: #fcfcfc;
+    --map-border: #678c83;
   }
 }
 
@@ -33,6 +40,7 @@
   --color-muted: var(--muted);
   --color-header: var(--header);
   --color-header-2: var(--header-2);
+  --color-map-sea: var(--map-sea);
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
 
@@ -49,4 +57,157 @@
 body {
   background: var(--bg);
   color: var(--text);
+}
+
+/* Player profile modal: fades and scales in over a blurred page, and back out
+   (PlayerModal sets data-state="closing" before closing the dialog). */
+.player-dialog {
+  transition:
+    opacity 220ms ease,
+    scale 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.player-dialog::backdrop {
+  background: rgb(15 23 42 / 0.35);
+  backdrop-filter: blur(8px);
+  transition:
+    background-color 220ms ease,
+    backdrop-filter 220ms ease;
+}
+.player-dialog[data-state="closing"] {
+  opacity: 0;
+  scale: 0.96;
+}
+.player-dialog[data-state="closing"]::backdrop {
+  background: rgb(15 23 42 / 0);
+  backdrop-filter: blur(0);
+}
+@starting-style {
+  .player-dialog[open] {
+    opacity: 0;
+    scale: 0.96;
+  }
+  .player-dialog[open]::backdrop {
+    background: rgb(15 23 42 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+/* No scrolling the page behind the modal. */
+:root:has(.player-dialog[open]) {
+  overflow: hidden;
+}
+
+/* Birthplace pins drop in when a country is selected; their cards pop up. */
+@keyframes pin-drop {
+  from {
+    opacity: 0;
+    translate: -50% calc(-100% - 10px);
+  }
+}
+.pin-drop {
+  animation: pin-drop 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pin-card {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+.pin-card {
+  animation: pin-card 160ms ease-out;
+}
+
+/* Landing league prompt: the blur fades in and the card rises into place. */
+@keyframes league-prompt-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes league-prompt-card-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    scale: 0.97;
+  }
+}
+.league-prompt {
+  animation: league-prompt-in 300ms ease-out;
+}
+.league-prompt-card {
+  animation: league-prompt-card-in 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Club theme: two colours from the selected club's kits (lib/clubColors.ts), set as
+   --club-*-l / --club-*-d on the squad board; very dark colours are lifted in dark mode. */
+.club-theme {
+  --club-1: var(--club-1-l);
+  --club-2: var(--club-2-l);
+  --club-1-ink: var(--club-1-ink-l);
+  --club-2-ink: var(--club-2-ink-l);
+}
+@media (prefers-color-scheme: dark) {
+  .club-theme {
+    --club-1: var(--club-1-d);
+    --club-2: var(--club-2-d);
+    --club-1-ink: var(--club-1-ink-d);
+    --club-2-ink: var(--club-2-ink-d);
+  }
+}
+
+/* Collapsible panel headers, in the club's colours (the app green outside a club theme).
+   Expanded: a primary-to-secondary tint and a full two-tone stripe on the left edge.
+   Collapsed: the same, much lighter, with a faded stripe. */
+.section-bar {
+  --c1: var(--club-1, var(--accent));
+  --c2: var(--club-2, var(--accent));
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--c1) 7%, var(--surface)),
+    color-mix(in oklab, var(--c2) 4%, var(--surface))
+  );
+}
+.section-bar:hover {
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--c1) 12%, var(--surface)),
+    color-mix(in oklab, var(--c2) 7%, var(--surface))
+  );
+}
+.section-bar[data-open] {
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--c1) 22%, var(--surface)),
+    color-mix(in oklab, var(--c2) 15%, var(--surface))
+  );
+}
+.section-bar[data-open]:hover {
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--c1) 28%, var(--surface)),
+    color-mix(in oklab, var(--c2) 19%, var(--surface))
+  );
+}
+.section-bar::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 5px;
+  background: linear-gradient(var(--c1) 50%, var(--c2) 50%);
+  opacity: 0.45;
+  transition: opacity 200ms;
+}
+.section-bar[data-open]::before {
+  opacity: 1;
+}
+
+/* Team header: a gradient from the club's primary colour to its secondary, with
+   text in the ink that reads on the primary (the name sits at that end). */
+.team-heading {
+  background: linear-gradient(
+    in oklab 110deg,
+    var(--club-1, var(--surface)) 0%,
+    var(--club-1, var(--surface)) 25%,
+    var(--club-2, var(--surface)) 100%
+  );
+  color: var(--club-1-ink, var(--text));
 }

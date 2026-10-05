@@ -1,14 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import FlagCircle from "./FlagCircle";
+import { interpolateZoom } from "d3-interpolate";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import Image from "next/image";
 import { useT } from "./I18nProvider";
 
 export interface MapData {
   width: number;
   height: number;
   countries: { key: string; name: string; d: string }[];
+  /** Initial and reset view. */
+  defaultView: { k: number; tx: number; ty: number };
+  /** Mercator projection parameters, for placing birthplace pins (see lib/worldMap). */
+  projection?: { scale: number; tx: number; ty: number };
 }
+
+/** A player's birthplace, pinned on the map while their country is selected. */
+export interface MapPin {
+  playerId: string;
+  name: string;
+  number: number | null;
+  /** "London, England". */
+  place: string;
+  lat: number;
+  lon: number;
+}
+
+/** Pins close together on screen (same town, or neighbours at this zoom) share one marker. */
+interface PinGroup {
+  key: string;
+  x: number;
+  y: number;
+  pins: MapPin[];
+}
+
+const PIN_MERGE_PX = 16;
 
 export interface CountryMarker {
   /** English name: the key shared with players' nationalities. */
@@ -39,7 +65,7 @@ interface View {
 }
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 8;
+const MAX_ZOOM = 16;
 const HOME: View = { k: 1, tx: 0, ty: 0 };
 
 /**
@@ -94,7 +120,8 @@ function placeMarkers(
   return pts;
 }
 
-const ease = (t: number) => 1 - (1 - t) ** 3;
+/** Ease in and out, so moves start and settle gently. */
+const ease = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 
 export default function NationalityMap({
   map,
@@ -103,6 +130,10 @@ export default function NationalityMap({
   previewed = null,
   onSelect,
   onPreview,
+  playersByCountry = {},
+  onPlayer,
+  pins = [],
+  selectedPlayerId = null,
 }: {
   map: MapData;
   markers: CountryMarker[];
@@ -112,11 +143,62 @@ export default function NationalityMap({
   onSelect: (country: string) => void;
   /** Called while a country shape with players is hovered (null when it isn't). */
   onPreview?: (country: string | null) => void;
+  /** Players per nationality (by English name), shown when hovering the selected flag. */
+  playersByCountry?: Record<string, { id: string; name: string; number: number | null }[]>;
+  /** A player was clicked: in the players popover, or a birthplace pin. */
+  onPlayer?: (playerId: string) => void;
+  /** Birthplaces of the selected country's players. */
+  pins?: MapPin[];
+  /** Selected player, whose pin stands out. */
+  selectedPlayerId?: string | null;
 }) {
   const t = useT();
+  // Country hovered on the map itself (shape or flag): previews it across the page
+  // and shows its name above the flag.
+  const [mapHover, setMapHover] = useState<string | null>(null);
+  // Flag (not shape) currently hovered or focused: drives the players popover.
+  const [flagHover, setFlagHover] = useState<string | null>(null);
+  // The pointer is over the players popover itself (keeps it open).
+  const [popoverHover, setPopoverHover] = useState(false);
+  // Country whose players the popover shows (kept while it fades out).
+  const [popoverCountry, setPopoverCountry] = useState<string | null>(null);
+  // Leaving the flag closes the popover after a short grace period, so the pointer
+  // can cross the gap between the flag and the popover.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const leaveFlag = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setFlagHover(null), 150);
+  };
+  useEffect(() => cancelClose, []);
+  // Birthplace pin whose card is showing (by group key); hovering a pin opens it,
+  // and like the players popover it stays open while the pointer crosses to it.
+  const [pinOpen, setPinOpen] = useState<string | null>(null);
+  const pinTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelPinClose = () => {
+    if (pinTimer.current) clearTimeout(pinTimer.current);
+    pinTimer.current = null;
+  };
+  const closePinSoon = () => {
+    cancelPinClose();
+    pinTimer.current = setTimeout(() => setPinOpen(null), 150);
+  };
+  useEffect(() => cancelPinClose, []);
+  const openPlayer = (playerId: string) => {
+    cancelPinClose();
+    setPinOpen(null);
+    onPlayer?.(playerId);
+  };
+  const hover = (country: string | null) => {
+    setMapHover(country);
+    onPreview?.(country);
+  };
   const boxRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number | null>(null);
-  const [view, setViewState] = useState<View>(HOME);
+  const [view, setViewState] = useState<View>(map.defaultView ?? HOME);
 
   // Mirrors of state for native/gesture handlers that outlive a render.
   const viewRef = useRef(view);
@@ -181,26 +263,58 @@ export default function NationalityMap({
       cancelAnimationFrame(animRef.current);
       const from = viewRef.current;
       const to = clamp(target);
+      // Smooth zoom (van Wijk & Nuij, via d3): interpolate the visible window's centre
+      // and width so long moves zoom out a little, travel, then zoom back in, instead of
+      // sliding and scaling independently.
+      const windowOf = (v: View): [number, number, number] => [
+        (map.width / 2 - v.tx) / v.k,
+        (map.height / 2 - v.ty) / v.k,
+        map.width / v.k,
+      ];
+      const path = interpolateZoom(windowOf(from), windowOf(to));
+      // Longer trips take longer, within a comfortable range.
+      const duration = Math.min(1100, Math.max(500, path.duration * 0.7));
       const t0 = performance.now();
       const step = (now: number) => {
-        const t = Math.min(1, (now - t0) / 220);
-        const e = ease(t);
-        setView({
-          k: from.k + (to.k - from.k) * e,
-          tx: from.tx + (to.tx - from.tx) * e,
-          ty: from.ty + (to.ty - from.ty) * e,
-        });
+        const t = Math.min(1, (now - t0) / duration);
+        const [cx, cy, w] = path(ease(t));
+        const k = map.width / w;
+        setView(t < 1 ? { k, tx: map.width / 2 - cx * k, ty: map.height / 2 - cy * k } : to);
         if (t < 1) animRef.current = requestAnimationFrame(step);
       };
       animRef.current = requestAnimationFrame(step);
     },
-    [clamp, setView],
+    [clamp, setView, map.width, map.height],
   );
 
   const zoomBy = (factor: number, sx = (width ?? 0) / 2, sy = height / 2) => {
     const from = viewRef.current;
     animateTo(zoomedAt(from, from.k * factor, sx, sy));
   };
+
+  /** Centres the map on a country at maximum zoom. */
+  const focusOn = (country: string) => {
+    const m = markers.find((x) => x.country === country);
+    if (!m) return;
+    const k = MAX_ZOOM;
+    // Put the country's point at the centre of the frame; clamping keeps the map in view.
+    animateTo({ k, tx: map.width / 2 - m.x * k, ty: map.height / 2 - m.y * k });
+  };
+
+  /** Click on a country or its flag: select it (the effect below positions the map). */
+  const clickCountry = (country: string) => onSelect(country);
+
+  // Whenever a new country becomes selected — from the map, a nationality ring or a
+  // player — centre on it at maximum zoom. Clearing the selection ("Show all", the
+  // club crest, clicking the selection again) flies back to the default view.
+  const followSelection = useEffectEvent((country: string | null) =>
+    country ? focusOn(country) : animateTo(map.defaultView ?? HOME),
+  );
+  const lastSelected = useRef(selected);
+  useEffect(() => {
+    if (selected !== lastSelected.current) followSelection(selected);
+    lastSelected.current = selected;
+  }, [selected]);
 
   // Ctrl/⌘ + wheel (and trackpad pinch, which arrives as ctrl + wheel) zooms
   // around the cursor. A plain wheel is left alone so the page still scrolls.
@@ -229,6 +343,8 @@ export default function NationalityMap({
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // A press anywhere but a pin or its card closes the pin card (touch has no hover-out).
+    if (!(e.target as HTMLElement).closest("[data-pin]")) setPinOpen(null);
     if (e.pointerType === "mouse" && e.button !== 0) return;
     cancelAnimationFrame(animRef.current);
     // A drag released off a flag fires no click, so clear any stale suppression.
@@ -298,6 +414,17 @@ export default function NationalityMap({
   };
 
   const zoomed = view.k > 1.001;
+  // The popover opens from the selected country's flag, or from any flag at maximum zoom.
+  const atMaxZoom = view.k >= MAX_ZOOM - 0.001;
+  const canPopover = (country: string) => country === selected || atMaxZoom;
+  const popoverOpen =
+    popoverCountry !== null &&
+    ((flagHover === popoverCountry && canPopover(popoverCountry)) || popoverHover);
+  const home = map.defaultView ?? HOME;
+  const atHome =
+    Math.abs(view.k - home.k) < 0.001 &&
+    Math.abs(view.tx - home.tx) < 0.5 &&
+    Math.abs(view.ty - home.ty) < 0.5;
   const tinted = new Set(markers.map((m) => m.countryKey).filter(Boolean));
   const selectedKey = markers.find((m) => m.country === selected)?.countryKey ?? null;
   const previewedKey = markers.find((m) => m.country === previewed)?.countryKey ?? null;
@@ -311,6 +438,9 @@ export default function NationalityMap({
   // by 2× zoom, so the unzoomed map isn't crowded with flags.
   const fullR = width && width < 640 ? 10 : 12;
   const r = Math.round(fullR * Math.min(1, 0.7 + 0.3 * (view.k - 1)));
+  // Rectangular flags (8:5), slightly smaller than the radius-based spacing allows.
+  const flagW = Math.round(r * 1.8);
+  const flagH = Math.round((flagW * 5) / 8);
 
   // Marker anchors on screen at the current zoom; off-screen countries are skipped.
   const anchors = width
@@ -324,11 +454,35 @@ export default function NationalityMap({
     : [];
   const placed = width ? placeMarkers(anchors, width, height, r) : [];
 
+  // Birthplace pins on screen, merged where they'd overlap; off-screen ones are skipped.
+  const pinGroups: PinGroup[] = [];
+  if (width && map.projection) {
+    const { scale: s, tx, ty } = map.projection;
+    for (const pin of pins) {
+      const lambda = (pin.lon * Math.PI) / 180;
+      const phi = (Math.max(-85, Math.min(85, pin.lat)) * Math.PI) / 180;
+      const mx = tx + s * lambda;
+      const my = ty - s * Math.log(Math.tan(Math.PI / 4 + phi / 2));
+      const x = (mx * view.k + view.tx) * scale;
+      const y = (my * view.k + view.ty) * scale;
+      if (x < -20 || x > width + 20 || y < -20 || y > height + 40) continue;
+      const near = pinGroups.find((g) => Math.hypot(g.x - x, g.y - y) < PIN_MERGE_PX);
+      if (near) near.pins.push(pin);
+      else pinGroups.push({ key: pin.playerId, x, y, pins: [pin] });
+    }
+  }
+
   return (
     <div
       ref={boxRef}
-      className={`relative w-full overflow-hidden rounded-lg select-none ${
-        zoomed ? "cursor-grab touch-none active:cursor-grabbing" : "touch-pan-y"
+      className={`relative w-full overflow-hidden rounded-lg bg-map-sea select-none ${
+        // Touch: vertical swipes keep scrolling the page until the user zooms in past the
+        // default view; horizontal drags still pan the map.
+        view.k > home.k + 0.001
+          ? "cursor-grab touch-none active:cursor-grabbing"
+          : zoomed
+            ? "cursor-grab touch-pan-y active:cursor-grabbing"
+            : "touch-pan-y"
       }`}
       style={{ aspectRatio: `${map.width} / ${map.height}` }}
       onPointerDown={onPointerDown}
@@ -364,22 +518,22 @@ export default function NationalityMap({
               <path
                 key={c.key}
                 d={c.d}
-                stroke="var(--surface)"
+                stroke="var(--map-border)"
                 strokeWidth="0.5"
                 vectorEffect="non-scaling-stroke"
                 className={`transition-[fill] duration-150 ${country ? "cursor-pointer" : ""}`}
                 onPointerEnter={
-                  country ? (e) => e.pointerType === "mouse" && onPreview?.(country) : undefined
+                  country ? (e) => e.pointerType === "mouse" && hover(country) : undefined
                 }
-                onPointerLeave={country ? () => onPreview?.(null) : undefined}
-                onClick={country ? () => onSelect(country) : undefined}
+                onPointerLeave={country ? () => hover(null) : undefined}
+                onClick={country ? () => clickCountry(country) : undefined}
                 style={{
                   fill:
                     c.key === selectedKey || c.key === previewedKey
-                      ? "color-mix(in oklab, var(--accent) 75%, var(--border))"
+                      ? "color-mix(in oklab, var(--accent) 75%, var(--map-land))"
                       : tinted.has(c.key)
-                        ? "color-mix(in oklab, var(--accent) 30%, var(--border))"
-                        : "var(--border)",
+                        ? "color-mix(in oklab, var(--accent) 30%, var(--map-land))"
+                        : "var(--map-land)",
                 }}
               />
             );
@@ -421,13 +575,29 @@ export default function NationalityMap({
             aria-pressed={isSelected}
             aria-label={label}
             title={label}
-            onClick={() => onSelect(p.marker.country)}
+            onClick={() => clickCountry(p.marker.country)}
             // Hovering (or focusing) a flag highlights its country, like hovering the shape.
-            onPointerEnter={(e) => e.pointerType === "mouse" && onPreview?.(p.marker.country)}
-            onPointerLeave={() => onPreview?.(null)}
-            onFocus={() => onPreview?.(p.marker.country)}
-            onBlur={() => onPreview?.(null)}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-[scale,opacity] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+            onPointerEnter={(e) => {
+              if (e.pointerType !== "mouse") return;
+              hover(p.marker.country);
+              cancelClose();
+              setFlagHover(p.marker.country);
+              if (canPopover(p.marker.country)) setPopoverCountry(p.marker.country);
+            }}
+            onPointerLeave={() => {
+              hover(null);
+              leaveFlag();
+            }}
+            onFocus={() => {
+              hover(p.marker.country);
+              setFlagHover(p.marker.country);
+              if (canPopover(p.marker.country)) setPopoverCountry(p.marker.country);
+            }}
+            onBlur={() => {
+              hover(null);
+              setFlagHover(null);
+            }}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-[3px] transition-[scale,opacity] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               isSelected
                 ? "z-20 scale-125 ring-2 ring-accent ring-offset-1 ring-offset-bg"
                 : isPreviewed
@@ -436,7 +606,7 @@ export default function NationalityMap({
             } ${dimmed ? "opacity-50 hover:opacity-100" : ""}`}
             style={{ left: p.x, top: p.y }}
           >
-            <FlagCircle src={p.marker.flag} country="" size={r * 2} className="shadow-sm" />
+            <FlagRect src={p.marker.flag} width={flagW} height={flagH} />
             {p.marker.count > 1 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-text px-0.5 text-[10px] leading-none font-bold text-surface">
                 {p.marker.count}
@@ -445,6 +615,217 @@ export default function NationalityMap({
           </button>
         );
       })}
+
+      {/* Birthplace pins of the selected country's players. */}
+      {pinGroups.map((g) => {
+        const single = g.pins.length === 1 ? g.pins[0] : null;
+        const isSelected = g.pins.some((p) => p.playerId === selectedPlayerId);
+        const label = single
+          ? t.bornIn(single.name, single.place)
+          : t.bornInMany(g.pins.length, g.pins[0].place);
+        return (
+          <button
+            key={g.key}
+            type="button"
+            data-pin
+            aria-label={label}
+            aria-expanded={single ? undefined : pinOpen === g.key}
+            onClick={() => (single ? openPlayer(single.playerId) : setPinOpen(g.key))}
+            onPointerEnter={(e) => {
+              if (e.pointerType !== "mouse") return;
+              cancelPinClose();
+              setPinOpen(g.key);
+            }}
+            onPointerLeave={closePinSoon}
+            onFocus={() => setPinOpen(g.key)}
+            onBlur={closePinSoon}
+            className={`pin-drop absolute z-[25] -translate-x-1/2 -translate-y-full cursor-pointer outline-none drop-shadow-[0_2px_2px_rgb(0_0_0/0.35)] transition-[scale] duration-150 [transform-origin:50%_100%] hover:scale-115 focus-visible:scale-115 ${
+              isSelected || pinOpen === g.key ? "scale-115" : ""
+            }`}
+            style={{ left: g.x, top: g.y }}
+          >
+            <svg viewBox="0 0 24 32" width="24" height="32" aria-hidden>
+              <path
+                d="M12 1C5.9 1 1 5.8 1 11.8 1 20 12 31 12 31s11-11 11-19.2C23 5.8 18.1 1 12 1Z"
+                fill={isSelected ? "var(--text)" : "var(--accent)"}
+                stroke="white"
+                strokeWidth="1.6"
+              />
+              {single ? (
+                <circle cx="12" cy="11.8" r="4" fill="white" />
+              ) : (
+                <text
+                  x="12"
+                  y="15.6"
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontWeight="700"
+                  fill="white"
+                >
+                  {g.pins.length}
+                </text>
+              )}
+            </svg>
+          </button>
+        );
+      })}
+
+      {/* Pin card: who was born there; names open the player's profile. */}
+      {(() => {
+        const g = pinGroups.find((x) => x.key === pinOpen);
+        if (!g || !width) return null;
+        const CARD_W = 210;
+        const places = [...new Set(g.pins.map((p) => p.place))];
+        // One place: it's the header. Several: each row says where.
+        const perRow = places.length > 1;
+        const estH = 40 + g.pins.length * (perRow ? 40 : 28);
+        const PIN_H = 32 * 1.15;
+        const above = g.y - PIN_H - 8 - estH >= 4;
+        const left = Math.min(width - CARD_W / 2 - 6, Math.max(CARD_W / 2 + 6, g.x));
+        return (
+          <div
+            data-pin
+            role="group"
+            aria-label={perRow ? t.bornHere(g.pins.length) : places[0]}
+            onPointerEnter={cancelPinClose}
+            onPointerLeave={closePinSoon}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="pin-card absolute z-40 cursor-default rounded-xl border border-border bg-surface p-2 text-left shadow-xl"
+            style={{
+              left,
+              top: above ? g.y - PIN_H - 6 : g.y + 6,
+              width: CARD_W,
+              transform: `translate(-50%, ${above ? "-100%" : "0"})`,
+            }}
+          >
+            <p className="mb-1 flex items-center gap-1 border-b border-border px-1 pb-1.5 text-[11px] font-semibold text-muted">
+              <svg viewBox="0 0 24 32" className="h-3 w-2.5 shrink-0 text-accent" aria-hidden>
+                <path
+                  d="M12 1C5.9 1 1 5.8 1 11.8 1 20 12 31 12 31s11-11 11-19.2C23 5.8 18.1 1 12 1Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <span className="truncate">{perRow ? t.bornHere(g.pins.length) : places[0]}</span>
+            </p>
+            <ul className="max-h-56 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+              {g.pins.map((p) => (
+                <li key={p.playerId}>
+                  <button
+                    type="button"
+                    onClick={() => openPlayer(p.playerId)}
+                    className="flex w-full cursor-pointer items-baseline gap-2 rounded-md px-1 py-1 text-left text-sm transition-colors outline-none hover:bg-accent/15 focus-visible:bg-accent/15 focus-visible:ring-1 focus-visible:ring-accent"
+                  >
+                    <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-accent">
+                      {p.number ?? "–"}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold underline-offset-2 hover:underline">
+                        {p.name}
+                      </span>
+                      {perRow && (
+                        <span className="block truncate text-[11px] text-muted">{p.place}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
+
+      {/* Name labels above the flags of the selected country (kept while selected)
+          and the country hovered on the map. */}
+      {[...new Set([selected, mapHover])].map((country) => {
+        const p = country ? placed.find((x) => x.marker.country === country) : null;
+        if (!p) return null;
+        // The players popover already shows the name while it's open.
+        if (popoverOpen && p.marker.country === popoverCountry) return null;
+        // The selected flag is drawn at 125%, so its label sits a little higher.
+        const lift = (flagH / 2) * (p.marker.country === selected ? 1.25 : 1) + 6;
+        return (
+          <span
+            key={p.marker.country}
+            role="tooltip"
+            className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-md bg-text px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-surface shadow-md"
+            style={{ left: p.x, top: p.y - lift }}
+          >
+            {p.marker.name}
+          </span>
+        );
+      })}
+
+      {/* Players popover: hovering the selected country's flag (or any flag at maximum
+          zoom) lists that country's players. */}
+      {(() => {
+        const p = popoverCountry ? placed.find((x) => x.marker.country === popoverCountry) : null;
+        const list = popoverCountry ? (playersByCountry[popoverCountry] ?? []) : [];
+        if (!p || !width || list.length === 0) return null;
+        const POP_W = 200;
+        const estH = 36 + list.length * 22;
+        const lift = (flagH / 2) * 1.25 + 8;
+        // Above the flag if it fits, otherwise below; always kept inside the frame.
+        const above = p.y - lift - estH >= 4;
+        const left = Math.min(width - POP_W / 2 - 6, Math.max(POP_W / 2 + 6, p.x));
+        const top = above ? p.y - lift : p.y + lift;
+        return (
+          <div
+            role="group"
+            aria-label={p.marker.name}
+            aria-hidden={!popoverOpen}
+            inert={!popoverOpen}
+            // Hovering the popover keeps it open; leaving it (or the flag) closes it.
+            onPointerEnter={() => {
+              cancelClose();
+              setPopoverHover(true);
+            }}
+            onPointerLeave={() => {
+              setPopoverHover(false);
+              setFlagHover(null);
+            }}
+            // Don't let presses on the popover start dragging the map.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className={`absolute z-40 cursor-default rounded-xl border border-border bg-surface p-2.5 text-left shadow-xl transition-[opacity,transform] duration-200 ease-out ${
+              popoverOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+            }`}
+            style={{
+              left,
+              top,
+              width: POP_W,
+              transform: `translate(-50%, ${above ? "-100%" : "0"}) scale(${popoverOpen ? 1 : 0.92})`,
+              transformOrigin: above ? "bottom center" : "top center",
+            }}
+          >
+            <p className="mb-1.5 border-b border-border pb-1.5 text-xs font-bold">
+              {p.marker.name}
+              <span className="ml-1 font-normal text-muted">· {list.length}</span>
+            </p>
+            <ul className="max-h-64 space-y-0.5 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+              {list.map((pl) => (
+                <li key={pl.id}>
+                  {/* Opens the player's profile; the popover closes behind it. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopoverHover(false);
+                      setFlagHover(null);
+                      onPlayer?.(pl.id);
+                    }}
+                    className="flex w-full cursor-pointer items-baseline gap-2 rounded-md px-1 py-0.5 text-left text-xs transition-colors outline-none hover:bg-accent/15 focus-visible:bg-accent/15 focus-visible:ring-1 focus-visible:ring-accent"
+                  >
+                    <span className="w-6 shrink-0 text-right font-bold tabular-nums text-accent">
+                      {pl.number ?? "–"}
+                    </span>
+                    <span className="truncate underline-offset-2 hover:underline">{pl.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* Zoom controls */}
       <div
@@ -459,10 +840,14 @@ export default function NationalityMap({
         >
           <path d="M10 4v12M4 10h12" />
         </ZoomButton>
-        <ZoomButton label={t.zoomOut} disabled={!zoomed} onClick={() => zoomBy(0.5)}>
+        <ZoomButton
+          label={t.zoomOut}
+          disabled={view.k <= MIN_ZOOM + 0.001}
+          onClick={() => zoomBy(0.5)}
+        >
           <path d="M4 10h12" />
         </ZoomButton>
-        <ZoomButton label={t.resetZoom} disabled={!zoomed} onClick={() => animateTo(HOME)}>
+        <ZoomButton label={t.resetZoom} disabled={atHome} onClick={() => animateTo(home)}>
           <path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4" />
         </ZoomButton>
       </div>
@@ -508,5 +893,26 @@ function ZoomButton({
         {children}
       </svg>
     </button>
+  );
+}
+
+/**
+ * A flag as a small 8:5 rectangle. ESPN's flag images are square with transparent
+ * padding and a dark border around the flag, so the image is zoomed to crop them.
+ */
+function FlagRect({ src, width, height }: { src: string; width: number; height: number }) {
+  return (
+    <span
+      className="block overflow-hidden rounded-[3px] shadow-sm ring-1 ring-black/25"
+      style={{ width, height }}
+    >
+      <Image
+        src={src}
+        alt=""
+        width={width * 2}
+        height={width * 2}
+        className="h-full w-full scale-[1.2] object-cover"
+      />
+    </span>
   );
 }

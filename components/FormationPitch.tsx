@@ -16,7 +16,8 @@ function titleCase(name: string) {
 }
 
 /** Pitch markings in metres on a 105 × 68 pitch, own goal on the left. */
-function Markings() {
+/** Pitch markings in a 105 × 68 landscape frame (rotate to stand it upright). */
+export function Markings() {
   const stripes = Array.from({ length: 10 }, (_, i) => i);
   return (
     <>
@@ -56,6 +57,7 @@ export default function FormationPitch({
   hoverCountry,
   onSelect,
   onHover,
+  onClear,
 }: {
   formation: Promise<TeamFormation | null>;
   kit: Kit;
@@ -65,6 +67,8 @@ export default function FormationPitch({
   hoverCountry: string | null;
   onSelect: (player: Player) => void;
   onHover: (playerId: string | null) => void;
+  /** A click on the pitch itself (not on a player): clears the selection. */
+  onClear?: () => void;
 }) {
   const data = use(formationPromise);
   const t = useT();
@@ -85,7 +89,11 @@ export default function FormationPitch({
         </span>
       </div>
 
-      <div className="relative mx-auto aspect-[68/105] w-full max-w-sm overflow-hidden rounded-xl shadow-inner [--pitch-stripe:#2b7a37] [--pitch:#2f8a3e] lg:max-w-none dark:[--pitch-stripe:#1d5427] dark:[--pitch:#215f2c]">
+      <div
+        onClick={(e) => {
+          if (!(e.target as HTMLElement).closest("button")) onClear?.();
+        }}
+        className="relative mx-auto aspect-[68/105] w-full max-w-sm overflow-hidden rounded-xl shadow-inner [--pitch-stripe:#2b7a37] [--pitch:#2f8a3e] lg:max-w-none dark:[--pitch-stripe:#1d5427] dark:[--pitch:#215f2c]">
         {/* Vertical pitch: own goal (and keeper) at the top, attacking downwards. */}
         <svg viewBox="0 0 68 105" className="absolute inset-0 h-full w-full" aria-hidden>
           <g transform="matrix(0 1 -1 0 68 0)">
@@ -122,7 +130,7 @@ export default function FormationPitch({
                   onClick={() => player && onSelect(player)}
                   onPointerEnter={(e) => e.pointerType === "mouse" && onHover(s.playerId)}
                   onPointerLeave={() => onHover(null)}
-                  className={`group flex w-[4.5rem] flex-col items-center transition-opacity duration-200 outline-none disabled:cursor-default ${
+                  className={`group flex w-[4.5rem] cursor-pointer flex-col items-center transition-opacity duration-200 outline-none disabled:cursor-default ${
                     dimmed ? "opacity-45 hover:opacity-100" : ""
                   }`}
                 >

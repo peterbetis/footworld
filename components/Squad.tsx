@@ -1,6 +1,7 @@
 import { getFormation } from "@/lib/formation";
 import { getMessages, type Locale } from "@/lib/i18n";
 import { getKitSet } from "@/lib/kits";
+import { getLeagues } from "@/lib/leagues";
 import { getManager } from "@/lib/manager";
 import { getSquad, type Squad as SquadData } from "@/lib/players";
 import { getTeams } from "@/lib/teams";
@@ -30,6 +31,8 @@ export default async function Squad({
 
   // Cached alongside the teams list, so this doesn't refetch.
   const team = (await getTeams(leagueSlug).catch(() => [])).find((x) => x.id === teamId);
+  // Cached too; for the league badge on the player modal.
+  const league = (await getLeagues().catch(() => [])).find((l) => l.slug === leagueSlug);
   const kits = getKitSet(teamId, squad.teamColor);
   // Also streamed: the current manager (Wikipedia/Wikidata).
   const manager = getManager(teamId, locale).catch((err) => {
@@ -72,12 +75,12 @@ export default async function Squad({
   return (
     <section aria-label={`${squad.teamName} — ${t.squad}`}>
       <SquadBoard
+        crest={team && <TeamLogo team={team} size={60} />}
         heading={
           <>
-            {team && <TeamLogo team={team} size={44} />}
             <div className="min-w-0">
               <h2 className="truncate text-lg font-bold">{squad.teamName}</h2>
-              <p className="text-xs text-muted">
+              <p className="text-xs opacity-80">
                 {squad.season && `${t.seasonSquad(squad.season)} · `}
                 {t.players(squad.players.length)}
               </p>
@@ -87,6 +90,7 @@ export default async function Squad({
         players={squad.players}
         kits={kits}
         team={team}
+        league={league && { name: league.name, logo: league.logo }}
         teamName={squad.teamName}
         map={getWorldMap()}
         markers={markers}

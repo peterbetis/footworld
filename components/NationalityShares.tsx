@@ -6,6 +6,10 @@ import type { CountryMarker } from "./NationalityMap";
 
 const R = 16;
 const CIRCUMFERENCE = 2 * Math.PI * R;
+// Ring diameters in px: the biggest share gets MAX_RING, the rest shrink with their
+// share of the squad, down to MIN_RING.
+const MIN_RING = 44;
+const MAX_RING = 66;
 
 /**
  * One ring per nationality showing its share of the squad, largest first.
@@ -28,6 +32,13 @@ export default function NationalityShares({
 }) {
   const t = useT();
   const sorted = [...countries].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const most = sorted[0]?.count ?? 1;
+  // Scaled from the smallest share to the biggest, so equal shares get equal rings.
+  const least = sorted.at(-1)?.count ?? most;
+  const ringSize = (count: number) =>
+    most === least
+      ? MAX_RING
+      : Math.round(MIN_RING + ((MAX_RING - MIN_RING) * (count - least)) / (most - least));
 
   return (
     <ul
@@ -44,8 +55,9 @@ export default function NationalityShares({
         const isPreviewed = !isSelected && c.country === previewed;
         const dimmed = selected !== null && !isSelected && !isPreviewed;
         const label = t.shareOf(c.name, c.count, total, pct);
+        const size = ringSize(c.count);
         return (
-          <li key={c.country} className="shrink-0">
+          <li key={c.country} className="flex shrink-0">
             <button
               type="button"
               aria-pressed={isSelected}
@@ -56,40 +68,60 @@ export default function NationalityShares({
               onPointerLeave={() => onPreview(null)}
               onFocus={() => onPreview(c.country)}
               onBlur={() => onPreview(null)}
-              className={`flex w-14 flex-col items-center rounded-lg px-1 pt-1 pb-0.5 transition-[background-color,opacity] duration-200 lg:w-full lg:flex-row lg:gap-2.5 lg:px-2 lg:py-1 outline-none focus-visible:outline-2 focus-visible:outline-accent ${
-                isSelected ? "bg-accent/15" : isPreviewed ? "bg-accent/10" : "hover:bg-bg"
-              } ${dimmed ? "opacity-45 hover:opacity-100" : ""}`}
+              style={{ minWidth: Math.max(56, size + 8) }}
+              // In the row (below lg), rings sit on a common baseline so the labels line up.
+              className={`flex cursor-pointer flex-col items-center justify-end rounded-lg lg:justify-start px-1 pt-1 pb-0.5 transition-[background-color,opacity,box-shadow,filter] duration-200 lg:w-full lg:flex-row lg:gap-2 lg:px-1.5 lg:py-1 outline-none focus-visible:outline-2 focus-visible:outline-accent ${
+                isSelected
+                  ? "bg-accent/25 shadow-sm ring-2 ring-accent ring-inset"
+                  : isPreviewed
+                    ? "bg-accent/15 ring-1 ring-accent/70 ring-inset"
+                    : "hover:bg-bg"
+              } ${dimmed ? "opacity-35 grayscale-[60%] hover:opacity-100 hover:grayscale-0" : ""}`}
             >
-              <span className="relative block h-11 w-11">
-                <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90" aria-hidden>
-                  <circle
-                    cx="20"
-                    cy="20"
-                    r={R}
-                    fill="none"
-                    stroke="var(--border)"
-                    strokeWidth="4"
-                  />
-                  <circle
-                    cx="20"
-                    cy="20"
-                    r={R}
-                    fill="none"
-                    stroke="var(--accent)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    // Keep a visible sliver for small shares despite the round caps.
-                    strokeDasharray={`${Math.max(share * CIRCUMFERENCE, 1)} ${CIRCUMFERENCE}`}
-                    className="transition-[stroke-dasharray] duration-500"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <FlagCircle src={c.flag} country="" size={22} />
+              {/* On lg the ring sits centred in a slot as wide as the biggest ring, so the
+                  labels beside the rings line up. */}
+              <span
+                className="flex shrink-0 items-center justify-center lg:w-[var(--slot)]"
+                style={{ "--slot": `${MAX_RING}px` } as React.CSSProperties}
+              >
+                <span
+                  className={`relative block shrink-0 transition-transform duration-200 ${isSelected ? "scale-110" : ""}`}
+                  style={{ width: size, height: size }}
+                >
+                  <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90" aria-hidden>
+                    <circle
+                      cx="20"
+                      cy="20"
+                      r={R}
+                      fill="none"
+                      stroke="var(--border)"
+                      strokeWidth="4"
+                    />
+                    <circle
+                      cx="20"
+                      cy="20"
+                      r={R}
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      // Keep a visible sliver for small shares despite the round caps.
+                      strokeDasharray={`${Math.max(share * CIRCUMFERENCE, 1)} ${CIRCUMFERENCE}`}
+                      className="transition-[stroke-dasharray] duration-500"
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <FlagCircle src={c.flag} country="" size={Math.round(size / 2)} />
+                  </span>
                 </span>
               </span>
               <span className="flex w-full min-w-0 flex-col items-center lg:items-start">
                 <span className="mt-0.5 text-xs font-bold tabular-nums lg:mt-0">{pct}%</span>
-                <span className="w-full truncate text-center text-[11px] leading-tight text-muted lg:text-left lg:text-xs">
+                <span
+                  className={`w-full truncate text-center text-[11px] leading-tight lg:text-left lg:text-xs ${
+                    isSelected ? "font-semibold text-text" : "text-muted"
+                  }`}
+                >
                   {c.name}
                 </span>
               </span>

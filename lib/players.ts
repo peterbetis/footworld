@@ -10,6 +10,10 @@ export interface Player {
   shirtName: string;
   number: number | null;
   position: Position;
+  /** YYYY-MM-DD; tells the player apart from namesakes when looking up their profile. */
+  birthDate: string | null;
+  /** From ESPN's whole inches, so it can be a centimetre or two out. */
+  heightCm: number | null;
   /**
    * `country` is ESPN's English name, used as the key (and to place it on the map);
    * `name` is the same country in the page's language, for display.
@@ -34,6 +38,8 @@ interface EspnRoster {
     displayName: string;
     lastName?: string;
     jersey?: string;
+    dateOfBirth?: string;
+    height?: number;
     position?: { abbreviation?: string };
     citizenship?: string;
     flag?: { href?: string; alt?: string };
@@ -96,6 +102,8 @@ export async function getSquad(
         shirtName: toShirtName(a.displayName, a.lastName),
         number: Number.isFinite(n) ? n : null,
         position: toPosition(a.position?.abbreviation),
+        birthDate: a.dateOfBirth?.slice(0, 10) ?? null,
+        heightCm: a.height ? Math.round(a.height * 2.54) : null,
         nationality: a.flag?.href
           ? (() => {
               const country = a.flag.alt ?? a.citizenship ?? "";

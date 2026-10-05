@@ -20,7 +20,7 @@ export default async function TeamsTable({
     console.error(err);
     return (
       <TableShell title={t.leagueTeams(leagueName)}>
-        <p className={`w-80 px-4 py-8 text-center text-sm text-muted ${REVEAL}`}>
+        <p className={`w-64 px-4 py-8 text-center text-sm text-muted ${REVEAL}`}>
           {t.teamsLoadError}
         </p>
       </TableShell>
@@ -45,7 +45,7 @@ function TableShell({
 }) {
   return (
     <section aria-label={title}>
-      <h2 className="relative flex w-80 items-baseline justify-between border-b border-border px-4 py-3 text-sm font-bold">
+      <h2 className="relative flex w-64 items-baseline justify-between border-b border-border px-4 py-3 text-sm font-bold">
         <span className={`whitespace-nowrap ${REVEAL}`}>{title}</span>
         {count != null && (
           <span className={`text-xs font-normal text-muted ${REVEAL}`}>{count}</span>
@@ -75,13 +75,13 @@ function TableShell({
 export function TeamsTableSkeleton({ label }: { label: string }) {
   return (
     <div aria-busy aria-label={label}>
-      <div className="w-80 border-b border-border px-4 py-3">
+      <div className="w-64 border-b border-border px-4 py-3">
         <div className="h-4 w-32 animate-pulse rounded bg-border" />
       </div>
       {Array.from({ length: 12 }, (_, i) => (
         <div
           key={i}
-          className="flex w-80 items-center gap-3 border-t border-border py-2 pr-4 pl-[17.5px] first:border-t-0"
+          className="flex w-64 items-center gap-3 border-t border-border py-2 pr-4 pl-[17.5px] first:border-t-0"
         >
           <div className="h-7 w-7 animate-pulse rounded-full bg-border" />
           <div className="h-3 flex-1 animate-pulse rounded bg-border" />

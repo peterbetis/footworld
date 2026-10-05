@@ -1,18 +1,21 @@
 "use client";
 
-import { Suspense, useId, useState } from "react";
+import { Suspense, useEffect, useId, useState } from "react";
 import type { TeamFormation } from "@/lib/formation";
 import type { KitSet } from "@/lib/kits";
 import type { Team } from "@/lib/teams";
 import type { Manager } from "@/lib/manager";
 import type { WikiKits } from "@/lib/wikiKits";
 import type { Player, Position } from "@/lib/players";
+import { clubPalette, clubThemeStyle } from "@/lib/clubColors";
+import { profileKey, requestProfile, useProfiles } from "@/lib/profileStore";
 import FlagCircle from "./FlagCircle";
 import KitsGallery, { KitsGallerySkeleton } from "./KitsGallery";
 import ManagerCard, { ManagerCardSkeleton } from "./ManagerCard";
 import FormationPitch, { FormationPitchSkeleton } from "./FormationPitch";
-import NationalityMap, { type CountryMarker, type MapData } from "./NationalityMap";
+import NationalityMap, { type CountryMarker, type MapData, type MapPin } from "./NationalityMap";
 import NationalityShares from "./NationalityShares";
+import PlayerModal from "./PlayerModal";
 import SectionBar, { CollapsiblePanel } from "./SectionBar";
 import Shirt from "./Shirt";
 import { useT } from "./I18nProvider";
@@ -31,10 +34,12 @@ const GROUPS: {
 type Selection = { country: string | null; playerId: string | null } | null;
 
 export default function SquadBoard({
+  crest,
   heading,
   players,
   kits,
   team,
+  league,
   teamName,
   map,
   markers,
@@ -43,12 +48,16 @@ export default function SquadBoard({
   manager,
   season,
 }: {
-  /** Team crest and name, shown at the start of the header row. */
+  /** Team crest, at the start of the header row; clicking it clears the selection. */
+  crest?: React.ReactNode;
+  /** Team name and season, after the crest. */
   heading: React.ReactNode;
   players: Player[];
   kits: KitSet;
   /** For the crest on the kit illustrations. */
   team: Team | undefined;
+  /** For the league badge on the player modal. */
+  league?: { name: string; logo: string };
   teamName: string;
   map: MapData;
   markers: CountryMarker[];
@@ -63,6 +72,9 @@ export default function SquadBoard({
   const [selection, setSelection] = useState<Selection>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredShare, setHoveredShare] = useState<string | null>(null);
+  // The profile modal; its player stays set while it fades out.
+  const [profilePlayer, setProfilePlayer] = useState<Player | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const t = useT();
   const [natOpen, setNatOpen] = useState(true);
   const [squadOpen, setSquadOpen] = useState(true);
@@ -91,24 +103,88 @@ export default function SquadBoard({
   ];
 
   // Clicking the selected country's flag again (including via a selected player) clears it.
-  const selectCountry = (c: string) =>
-    setSelection((cur) => (cur?.country === c ? null : { country: c, playerId: null }));
-  const selectPlayer = (p: Player) =>
-    setSelection((cur) =>
-      cur?.playerId === p.id ? null : { country: p.nationality?.country ?? null, playerId: p.id },
-    );
+  // Selecting one opens the squad panel (if collapsed), so its players show highlighted.
+  const selectCountry = (c: string) => {
+    if (selection?.country === c) {
+      setSelection(null);
+      return;
+    }
+    setSelection({ country: c, playerId: null });
+    setSquadOpen(true);
+  };
+  // Selects a player and opens their profile; closing it keeps them selected.
+  const openProfile = (p: Player) => {
+    setSelection({ country: p.nationality?.country ?? null, playerId: p.id });
+    setProfilePlayer(p);
+    setProfileOpen(true);
+  };
+  // Tiles and the pitch: clicking the selected player again clears the selection.
+  const selectPlayer = (p: Player) => {
+    if (selection?.playerId === p.id) setSelection(null);
+    else openProfile(p);
+  };
+
+  // Players grouped by nationality (English name), ordered by shirt number, for the
+  // map's players popover.
+  const playersByCountry: Record<string, { id: string; name: string; number: number | null }[]> =
+    {};
+  for (const p of [...players].sort((a, b) => (a.number ?? 999) - (b.number ?? 999))) {
+    if (!p.nationality) continue;
+    (playersByCountry[p.nationality.country] ??= []).push({
+      id: p.id,
+      name: p.name,
+      number: p.number,
+    });
+  }
 
   // Countries are keyed by their English name; show them in the page's language.
   const nameOf = (country: string) => shares.find((c) => c.country === country)?.name ?? country;
+
+  // Birthplace pins for the selected country's players, as their profiles arrive.
+  const profiles = useProfiles();
+  const countryPlayers = focusCountry
+    ? players.filter((p) => p.nationality?.country === focusCountry)
+    : [];
+  useEffect(() => {
+    if (!focusCountry) return;
+    for (const p of players) {
+      if (p.nationality?.country === focusCountry) requestProfile(p, t.locale);
+    }
+  }, [focusCountry, players, t.locale]);
+  const pins: MapPin[] = countryPlayers.flatMap((p) => {
+    const entry = profiles.get(profileKey(p.id, t.locale));
+    if (!entry || entry === "error" || !entry.birthCoords || !entry.birthPlace) return [];
+    return [
+      {
+        playerId: p.id,
+        name: p.name,
+        number: p.number,
+        place: entry.birthPlace,
+        ...entry.birthCoords,
+      },
+    ];
+  });
 
   const matches = focusCountry
     ? players.filter((p) => p.nationality?.country === focusCountry).length
     : 0;
 
   return (
-    <>
+    // Club colours for the panel headers (inherited through display: contents).
+    <div className="club-theme contents" style={clubThemeStyle(clubPalette(kits))}>
       {/* Hidden on phones: the teams bar under the page header already shows the team. */}
-      <header className="hidden items-center gap-3 border-b border-border px-4 py-3 sm:flex sm:px-6">
+      <header className="team-heading hidden items-center gap-3 border-b border-border px-4 py-2 sm:flex sm:px-6">
+        {crest && (
+          <button
+            type="button"
+            onClick={() => setSelection(null)}
+            aria-label={t.clearSelection}
+            title={t.clearSelection}
+            className="shrink-0 cursor-pointer rounded-lg drop-shadow-[0_1px_3px_rgb(0_0_0/0.35)] transition-transform outline-none hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-95"
+          >
+            {crest}
+          </button>
+        )}
         {heading}
       </header>
 
@@ -123,7 +199,7 @@ export default function SquadBoard({
           icon={
             <svg
               viewBox="0 0 20 20"
-              className="h-[1.2375rem] w-[1.2375rem]"
+              className="h-[0.95rem] w-[0.95rem]"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.6"
@@ -145,7 +221,7 @@ export default function SquadBoard({
                   <button
                     type="button"
                     onClick={() => setSelection(null)}
-                    className="pointer-events-auto relative z-10 font-semibold text-text underline-offset-2 hover:underline"
+                    className="pointer-events-auto relative z-10 cursor-pointer font-semibold text-text underline-offset-2 hover:underline"
                   >
                     {t.showAll}
                   </button>
@@ -164,7 +240,7 @@ export default function SquadBoard({
           {/* Below lg: share rings in a row above the map. lg and up: a column on the
               left, as tall as the map (the rings list fills it and scrolls). */}
           <div className="border-t border-border lg:flex lg:gap-3 lg:px-4 lg:py-3">
-            <div className="px-4 pt-3 pb-2 sm:px-6 lg:relative lg:w-48 lg:shrink-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border lg:bg-surface lg:p-0 lg:shadow-sm">
+            <div className="px-4 pt-3 pb-2 sm:px-6 lg:relative lg:w-44 lg:shrink-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border lg:bg-surface lg:p-0 lg:shadow-sm">
               <NationalityShares
                 countries={shares}
                 total={players.length}
@@ -178,10 +254,17 @@ export default function SquadBoard({
               <NationalityMap
                 map={map}
                 markers={markers}
+                playersByCountry={playersByCountry}
                 selected={focusCountry}
                 previewed={hoverCountry}
                 onSelect={selectCountry}
                 onPreview={setHoveredShare}
+                pins={pins}
+                selectedPlayerId={selection?.playerId ?? null}
+                onPlayer={(id) => {
+                  const p = players.find((x) => x.id === id);
+                  if (p) openProfile(p);
+                }}
               />
             </div>
           </div>
@@ -199,7 +282,7 @@ export default function SquadBoard({
           icon={
             <svg
               viewBox="0 0 20 20"
-              className="h-[1.2375rem] w-[1.2375rem]"
+              className="h-[0.95rem] w-[0.95rem]"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.6"
@@ -230,7 +313,7 @@ export default function SquadBoard({
                     <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
                       {title} <span className="font-normal">· {group.length}</span>
                     </h3>
-                    <ul className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-5 xl:grid-cols-8">
+                    <ul className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-5 xl:grid-cols-8 2xl:grid-cols-10">
                       {group.map((p) => {
                         const country = p.nationality?.country ?? null;
                         const isSelected = selection?.playerId === p.id;
@@ -266,7 +349,7 @@ export default function SquadBoard({
                               onPointerLeave={() => setHoveredId((id) => (id === p.id ? null : id))}
                               onFocus={() => setHoveredId(p.id)}
                               onBlur={() => setHoveredId((id) => (id === p.id ? null : id))}
-                              className={`relative flex h-full w-full flex-col items-center rounded-lg bg-bg px-1 pt-1.5 pb-1 text-center transition-[filter,opacity,box-shadow,translate,background-color] duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tone} ${
+                              className={`relative flex h-full w-full cursor-pointer flex-col items-center rounded-lg bg-bg px-1 pt-1.5 pb-1 text-center transition-[filter,opacity,box-shadow,translate,background-color] duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${tone} ${
                                 blurred ? "opacity-40 blur-[2px]" : ""
                               }`}
                             >
@@ -303,10 +386,7 @@ export default function SquadBoard({
                                 </span>
                               )}
                               {p.nationality && (
-                                <span
-                                  title={p.nationality.name}
-                                  className="absolute top-1 right-1"
-                                >
+                                <span title={p.nationality.name} className="absolute top-1 right-1">
                                   <FlagCircle src={p.nationality.flag} country="" size={13} />
                                 </span>
                               )}
@@ -338,12 +418,13 @@ export default function SquadBoard({
                   hoverCountry={hoverCountry}
                   onSelect={selectPlayer}
                   onHover={setHoveredId}
+                  onClear={() => setSelection(null)}
                 />
               </Suspense>
               {/* Current manager, under the pitch. */}
               <div className="mt-5">
                 <Suspense fallback={<ManagerCardSkeleton label={t.loadingManager} />}>
-                  <ManagerCard manager={manager} />
+                  <ManagerCard manager={manager} team={team} league={league} />
                 </Suspense>
               </div>
             </section>
@@ -362,7 +443,7 @@ export default function SquadBoard({
           icon={
             <svg
               viewBox="0 0 20 20"
-              className="h-[1.2375rem] w-[1.2375rem]"
+              className="h-[0.95rem] w-[0.95rem]"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.6"
@@ -377,11 +458,26 @@ export default function SquadBoard({
         <CollapsiblePanel id={kitsPanelId} open={kitsOpen}>
           <div className="border-t border-border px-4 py-5 sm:px-6">
             <Suspense fallback={<KitsGallerySkeleton label={t.kitsLoading} />}>
-              <KitsGallery wiki={wikiKits} fallback={kits} team={team} teamName={teamName} />
+              <KitsGallery
+                wiki={wikiKits}
+                fallback={kits}
+                team={team}
+                teamName={teamName}
+                currentSeason={season}
+              />
             </Suspense>
           </div>
         </CollapsiblePanel>
       </section>
-    </>
+
+      <PlayerModal
+        player={profilePlayer}
+        team={team}
+        league={league}
+        formation={formation}
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+      />
+    </div>
   );
 }

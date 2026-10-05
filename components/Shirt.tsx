@@ -118,6 +118,12 @@ function Pattern({ kit }: { kit: Kit }) {
       return <polygon points="34,14 72,14 172,214 134,214" fill={kit.accent} />;
     case "band":
       return <rect x="0" y="68" width="200" height="22" fill={kit.accent} />;
+    case "halves":
+      return <rect x="100" y="0" width="100" height="220" fill={kit.accent} />;
+    case "diagonal":
+      return <polygon points="0,0 200,0 0,220" fill={kit.accent} />;
+    case "vband":
+      return <rect x="74" y="0" width="52" height="220" fill={kit.accent} />;
     default:
       return null;
   }

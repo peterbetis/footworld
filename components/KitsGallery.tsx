@@ -22,8 +22,11 @@ export default function KitsGallery({
   fallback,
   team,
   teamName,
+  currentSeason,
 }: {
   wiki: Promise<WikiKits | null>;
+  /** e.g. "2026-27", to flag Wikipedia kits that are from an older season. */
+  currentSeason: string;
   fallback: KitSet;
   team: Team | undefined;
   teamName: string;
@@ -43,17 +46,11 @@ export default function KitsGallery({
             </KitCard>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted">
-          {t.kitsFromWikipedia}{" "}
-          <a
-            href={wiki.article}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-text underline underline-offset-2 hover:text-accent"
-          >
-            Wikipedia
-          </a>
-        </p>
+        {wiki.season !== currentSeason && (
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-text">
+            {wiki.season ? t.kitsOlderSeason(wiki.season) : t.kitsUnknownSeason}
+          </p>
+        )}
       </>
     );
   }

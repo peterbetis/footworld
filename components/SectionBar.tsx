@@ -26,26 +26,28 @@ export default function SectionBar({
 }) {
   return (
     <div
-      className={`group/bar relative flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 transition-colors hover:bg-accent/10 sm:px-6 ${
-        open ? "bg-accent/5" : ""
-      }`}
+      // Colours come from the club theme (see .section-bar in globals.css): a strong
+      // two-colour tint and stripe when expanded, a light one when collapsed.
+      data-open={open || undefined}
+      className="section-bar group/bar relative flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6"
     >
       <button
         type="button"
         aria-expanded={open}
         aria-controls={controls}
         onClick={onToggle}
-        className="flex items-center gap-2.5 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent"
+        className="flex cursor-pointer items-center gap-2.5 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent"
       >
         <span
           aria-hidden
-          className="flex h-[2.2rem] w-[2.2rem] shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-sm"
+          // Softened so the icon doesn't outweigh the title; full strength on hover.
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c1)] text-[var(--club-1-ink,white)] opacity-70 shadow-sm ring-[1.5px] ring-[var(--c2)] ring-offset-0 transition-opacity duration-200 group-hover/bar:opacity-100"
         >
           {icon}
         </span>
         <span className="text-base font-bold tracking-tight">{title}</span>
         {badge != null && (
-          <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-text">
+          <span className="rounded-full bg-[color-mix(in_oklab,var(--c1)_16%,transparent)] px-2 py-0.5 text-xs font-semibold text-text ring-1 ring-[color-mix(in_oklab,var(--c1)_30%,transparent)]">
             {badge}
           </span>
         )}
@@ -59,13 +61,15 @@ export default function SectionBar({
 
       <span
         aria-hidden
-        className={`pointer-events-none flex h-[2.2rem] w-[2.2rem] shrink-0 items-center justify-center rounded-full border border-border bg-surface text-text shadow-sm transition-colors group-hover/bar:border-accent group-hover/bar:text-accent ${
-          status != null ? "ml-auto sm:ml-0" : "ml-auto"
-        }`}
+        className={`pointer-events-none flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full border shadow-sm transition-colors ${
+          open
+            ? "border-[var(--c2)] bg-[var(--c2)] text-[var(--club-2-ink,white)]"
+            : "border-[color-mix(in_oklab,var(--c1)_60%,transparent)] bg-surface text-[color-mix(in_oklab,var(--c1)_60%,var(--text))] group-hover/bar:border-[var(--c1)]"
+        } ${status != null ? "ml-auto sm:ml-0" : "ml-auto"}`}
       >
         <svg
           viewBox="0 0 20 20"
-          className={`h-[1.1rem] w-[1.1rem] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
         >
           <path
             d="M5 7.5l5 5 5-5"

@@ -2,7 +2,7 @@ import "server-only";
 import {
   geoArea,
   geoCentroid,
-  geoEqualEarth,
+  geoMercator,
   geoPath,
   type GeoPermissibleObjects,
 } from "d3-geo";
@@ -22,6 +22,13 @@ export interface WorldMap {
   width: number;
   height: number;
   countries: MapCountry[];
+  /** Initial (and reset) view: zoom k and offset tx/ty in map units. */
+  defaultView: { k: number; tx: number; ty: number };
+  /**
+   * The Mercator projection, so the browser can place points (birthplaces):
+   * x = tx + scale·λ, y = ty − scale·ln(tan(π/4 + φ/2)), with λ, φ in radians.
+   */
+  projection: { scale: number; tx: number; ty: number };
 }
 
 export interface MapPoint {
@@ -100,7 +107,7 @@ const built = (() => {
     (f) => f.properties.name !== "Antarctica" && f.properties.name !== "Fr. S. Antarctic Lands",
   );
 
-  const projection = geoEqualEarth().fitWidth(WIDTH, {
+  const projection = geoMercator().fitWidth(WIDTH, {
     type: "FeatureCollection",
     features,
   } as GeoPermissibleObjects);
@@ -114,14 +121,39 @@ const built = (() => {
   const byName = new Map(features.map((f) => [f.properties.name, f]));
   const keyOf = (f: CountryFeature) => f.properties.name;
 
+  const height = Math.ceil(y1 - y0);
+
+  // Default view: aligned to the map's bottom edge and zoomed so only the southern
+  // 55% of Greenland shows at the top. Horizontally centred on the span from Canada's
+  // western border (141°W) to Australia's east coast, which that zoom keeps fully in
+  // view with a slim margin.
+  const GREENLAND_VISIBLE = 0.55;
+  const greenland = byNameFor(features, "Greenland");
+  const [[, gTop], [, gBottom]] = greenland ? path.bounds(greenland) : [[0, 0], [0, height * 0.4]];
+  const topEdge = gBottom - GREENLAND_VISIBLE * (gBottom - gTop);
+  const k = height / (height - topEdge);
+  const west = projection([-141, 60])![0];
+  const east = projection([153.6, -28])![0];
+  const defaultView = { k, tx: WIDTH / 2 - ((west + east) / 2) * k, ty: height - height * k };
+
   const map: WorldMap = {
     width: WIDTH,
-    height: Math.ceil(y1 - y0),
+    height,
     countries: features.map((f) => ({ key: keyOf(f), name: f.properties.name, d: path(f) ?? "" })),
+    defaultView,
+    projection: {
+      scale: projection.scale(),
+      tx: projection.translate()[0],
+      ty: projection.translate()[1],
+    },
   };
 
   return { map, projection, byName, keyOf };
 })();
+
+function byNameFor(features: CountryFeature[], name: string) {
+  return features.find((f) => f.properties.name === name);
+}
 
 export function getWorldMap(): WorldMap {
   return built.map;

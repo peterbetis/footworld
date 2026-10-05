@@ -1,6 +1,7 @@
 import "server-only";
 import type { Locale } from "./i18n";
-import { articleUrl, commonsThumb, getClubArticle, wikidataApi, wikipediaApi } from "./wikipedia";
+import { getPersonDetails } from "./playerProfile";
+import { commonsThumb, getClubArticle, wikidataApi, wikipediaApi } from "./wikipedia";
 
 export interface Manager {
   name: string;
@@ -8,7 +9,16 @@ export interface Manager {
   nationality: string | null;
   flag: string | null;
   portrait: string | null;
-  article: string;
+  /** For the manager modal (null when the manager has no Wikidata entry). */
+  details: {
+    fullName: string | null;
+    /** YYYY-MM-DD. */
+    birthDate: string | null;
+    birthPlace: string | null;
+    birthFlag: string | null;
+    /** Larger photo (Wikimedia Commons), falling back to the card portrait. */
+    photo: string | null;
+  } | null;
 }
 
 interface WikidataEntity {
@@ -86,5 +96,13 @@ export async function getManager(teamId: string, locale: Locale): Promise<Manage
   // Display name: the infobox's link text if given, else the title without a
   // disambiguation suffix ("José Alberto (footballer)" → "José Alberto").
   const name = (link[2] ?? articleTitle).replace(/\s*\([^)]*\)\s*$/, "").trim();
-  return { name, nationality, flag, portrait, article: articleUrl(articleTitle) };
+  const person = qid ? await getPersonDetails(qid, locale).catch(() => null) : null;
+  const details = person && {
+    fullName: person.fullName,
+    birthDate: person.birthDate,
+    birthPlace: person.birthPlace?.name ?? null,
+    birthFlag: person.birthPlace?.flag ?? null,
+    photo: person.photo ?? portrait,
+  };
+  return { name, nationality, flag, portrait, details };
 }

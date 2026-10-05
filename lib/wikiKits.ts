@@ -1,5 +1,5 @@
 import "server-only";
-import { articleUrl, getClubArticle, wikipediaApi } from "./wikipedia";
+import { getClubArticle, wikipediaApi } from "./wikipedia";
 
 /**
  * Current-season kits from each club's English Wikipedia article.
@@ -31,7 +31,23 @@ export interface WikiKit {
 
 export interface WikiKits {
   kits: WikiKit[];
-  article: string;
+  /**
+   * Season the kits are from, read from Wikipedia's pattern names
+   * ("_barcelona2627h" → "2026-27"); null when the names don't say.
+   */
+  season: string | null;
+}
+
+/** "2627" inside a pattern name → "2026-27" (two consecutive two-digit years). */
+function seasonFromPatterns(params: string[]) {
+  for (const p of params) {
+    for (const m of p.matchAll(/pattern_b=[^|]*?(\d{2})(\d{2})/g)) {
+      const a = Number(m[1]);
+      const b = Number(m[2]);
+      if (b === (a + 1) % 100) return `20${m[1]}-${m[2]}`;
+    }
+  }
+  return null;
 }
 
 const PARTS = ["la", "b", "ra", "sh", "so"] as const;
@@ -86,7 +102,7 @@ function parseLayers(html: string): KitLayer[] {
 export async function getWikiKits(teamId: string): Promise<WikiKits | null> {
   const club = await getClubArticle(teamId);
   if (!club) return null;
-  const { title, wikitext } = club;
+  const { wikitext } = club;
 
   const defined = KEYS.map((key, i) => ({ key, params: kitParams(wikitext, i + 1) })).filter(
     (k): k is { key: (typeof KEYS)[number]; params: string } => k.params !== null,
@@ -119,7 +135,7 @@ export async function getWikiKits(teamId: string): Promise<WikiKits | null> {
   return kits.length
     ? {
         kits,
-        article: articleUrl(title),
+        season: seasonFromPatterns(defined.map((k) => k.params)),
       }
     : null;
 }

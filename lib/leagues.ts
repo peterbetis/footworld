@@ -13,15 +13,15 @@ export interface League {
   available: boolean;
 }
 
-// Main European leagues, in display order. Only LaLiga and the Premier League are wired up so far.
+// Main European leagues, in display order.
 const LEAGUES: Omit<League, "logo" | "urlSlug">[] = [
   { slug: "esp.1", name: "LaLiga", country: "Spain", available: true },
   { slug: "eng.1", name: "Premier League", country: "England", available: true },
-  { slug: "ita.1", name: "Serie A", country: "Italy", available: false },
-  { slug: "ger.1", name: "Bundesliga", country: "Germany", available: false },
-  { slug: "fra.1", name: "Ligue 1", country: "France", available: false },
-  { slug: "por.1", name: "Primeira Liga", country: "Portugal", available: false },
-  { slug: "ned.1", name: "Eredivisie", country: "Netherlands", available: false },
+  { slug: "ita.1", name: "Serie A", country: "Italy", available: true },
+  { slug: "ger.1", name: "Bundesliga", country: "Germany", available: true },
+  { slug: "fra.1", name: "Ligue 1", country: "France", available: true },
+  { slug: "por.1", name: "Primeira Liga", country: "Portugal", available: true },
+  { slug: "ned.1", name: "Eredivisie", country: "Netherlands", available: true },
 ];
 
 interface EspnLeague {

@@ -1,4 +1,15 @@
-export type KitPattern = "solid" | "stripes" | "hoops" | "sash" | "band";
+export type KitPattern =
+  | "solid"
+  | "stripes"
+  | "hoops"
+  | "sash"
+  | "band"
+  /** Accent on one vertical half. */
+  | "halves"
+  /** Accent above a diagonal split (e.g. Monaco). */
+  | "diagonal"
+  /** One broad central vertical stripe (e.g. Ajax, PSG). */
+  | "vband";
 
 export interface Kit {
   pattern: KitPattern;
@@ -65,6 +76,107 @@ const KITS: Record<string, Kit> = {
   "393": { pattern: "solid", base: "#dd0000", accent: "#dd0000", trim: "#ffffff", print: "#ffffff" }, // Nottingham Forest
   "366": { pattern: "stripes", base: "#ffffff", accent: "#eb172b", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Sunderland
   "367": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#132257", print: "#132257" }, // Tottenham Hotspur
+  // Serie A
+  "103": { pattern: "stripes", base: "#111111", accent: "#fb090b", sleeves: "#fb090b", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // AC Milan
+  "104": { pattern: "solid", base: "#8e1f2f", accent: "#8e1f2f", trim: "#f0bc42", print: "#f0bc42" }, // AS Roma
+  "105": { pattern: "stripes", base: "#111111", accent: "#1e71b8", sleeves: "#1e71b8", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // Atalanta
+  "107": { pattern: "stripes", base: "#1a2f48", accent: "#a21c26", sleeves: "#1a2f48", trim: "#1a2f48", print: "#ffffff", printOutline: "#1a2f48" }, // Bologna
+  "2925": { pattern: "halves", base: "#a6192e", accent: "#002350", trim: "#ffffff", print: "#ffffff", printOutline: "#002350" }, // Cagliari
+  "2572": { pattern: "solid", base: "#0a3d91", accent: "#0a3d91", trim: "#ffffff", print: "#ffffff" }, // Como
+  "109": { pattern: "solid", base: "#5b2b82", accent: "#5b2b82", trim: "#ffffff", print: "#ffffff" }, // Fiorentina
+  "4057": { pattern: "solid", base: "#f6d32d", accent: "#f6d32d", trim: "#0b3e8f", print: "#0b3e8f" }, // Frosinone
+  "3263": { pattern: "halves", base: "#a6192e", accent: "#002147", trim: "#ffffff", print: "#ffffff", printOutline: "#002147" }, // Genoa
+  "110": { pattern: "stripes", base: "#111111", accent: "#0068a8", sleeves: "#0068a8", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // Inter
+  "111": { pattern: "stripes", base: "#ffffff", accent: "#111111", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Juventus
+  "112": { pattern: "solid", base: "#87d8f7", accent: "#87d8f7", trim: "#0b2240", print: "#0b2240" }, // Lazio
+  "113": { pattern: "stripes", base: "#f9e300", accent: "#d4001f", trim: "#d4001f", print: "#0b1d4a", printOutline: "#ffffff" }, // Lecce
+  "4007": { pattern: "solid", base: "#c8102e", accent: "#c8102e", trim: "#ffffff", print: "#ffffff" }, // Monza
+  "114": { pattern: "solid", base: "#12a0d7", accent: "#12a0d7", trim: "#ffffff", print: "#ffffff" }, // Napoli
+  "115": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#ffd200", print: "#111111" }, // Parma
+  "3997": { pattern: "stripes", base: "#111111", accent: "#00a752", sleeves: "#00a752", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // Sassuolo
+  "239": { pattern: "solid", base: "#8a1e03", accent: "#8a1e03", trim: "#ffffff", print: "#ffffff" }, // Torino
+  "118": { pattern: "stripes", base: "#ffffff", accent: "#111111", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Udinese
+  "17530": { pattern: "solid", base: "#111111", accent: "#111111", trim: "#f47b20", print: "#ffffff" }, // Venezia
+
+  // Bundesliga
+  "598": { pattern: "solid", base: "#eb1923", accent: "#eb1923", trim: "#ffffff", print: "#ffffff" }, // Union Berlin
+  "131": { pattern: "solid", base: "#e32221", accent: "#e32221", trim: "#111111", print: "#ffffff" }, // Bayer Leverkusen
+  "132": { pattern: "solid", base: "#dc052d", accent: "#dc052d", trim: "#ffffff", print: "#ffffff" }, // Bayern Munich
+  "124": { pattern: "solid", base: "#fde100", accent: "#fde100", trim: "#111111", print: "#111111" }, // Borussia Dortmund
+  "268": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#00a650", print: "#111111" }, // Borussia Mönchengladbach
+  "125": { pattern: "solid", base: "#111111", accent: "#111111", trim: "#e1000f", print: "#ffffff" }, // Eintracht Frankfurt
+  "3841": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#ba3733", print: "#ba3733" }, // FC Augsburg
+  "122": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#ed1c24", print: "#ed1c24" }, // FC Cologne
+  "127": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#0a3f86", print: "#0a3f86" }, // Hamburg SV
+  "2950": { pattern: "solid", base: "#c3141e", accent: "#c3141e", trim: "#ffffff", print: "#ffffff" }, // Mainz
+  "11420": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#dd0741", print: "#0c2043" }, // RB Leipzig
+  "126": { pattern: "solid", base: "#e2001a", accent: "#e2001a", trim: "#111111", print: "#ffffff" }, // SC Freiburg
+  "3307": { pattern: "solid", base: "#00337f", accent: "#00337f", trim: "#111111", print: "#ffffff" }, // SC Paderborn 07
+  "10388": { pattern: "solid", base: "#111111", accent: "#111111", trim: "#ffffff", print: "#ffffff" }, // SV Elversberg
+  "133": { pattern: "solid", base: "#004d9d", accent: "#004d9d", trim: "#ffffff", print: "#ffffff" }, // Schalke 04
+  "7911": { pattern: "solid", base: "#1961b5", accent: "#1961b5", trim: "#ffffff", print: "#ffffff" }, // TSG Hoffenheim
+  "134": { pattern: "band", base: "#ffffff", accent: "#e32219", trim: "#e32219", print: "#e32219" }, // VfB Stuttgart
+  "137": { pattern: "solid", base: "#1d9053", accent: "#1d9053", trim: "#ffffff", print: "#ffffff" }, // Werder Bremen
+
+  // Ligue 1
+  "172": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#0e5cad", print: "#0e5cad" }, // AJ Auxerre
+  "174": { pattern: "diagonal", base: "#ffffff", accent: "#e30613", trim: "#e30613", print: "#111111", printOutline: "#ffffff" }, // AS Monaco
+  "7868": { pattern: "stripes", base: "#ffffff", accent: "#111111", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Angers
+  "6997": { pattern: "solid", base: "#e2001a", accent: "#e2001a", trim: "#ffffff", print: "#ffffff" }, // Brest
+  "3236": { pattern: "halves", base: "#6cb4e4", accent: "#0e2240", trim: "#0e2240", print: "#ffffff", printOutline: "#0e2240" }, // Le Havre
+  "2697": { pattern: "solid", base: "#d62b11", accent: "#d62b11", trim: "#ffd200", print: "#ffffff" }, // Le Mans
+  "175": { pattern: "solid", base: "#fdd700", accent: "#fdd700", sleeves: "#e1001a", trim: "#e1001a", print: "#e1001a" }, // Lens
+  "166": { pattern: "solid", base: "#e01e13", accent: "#e01e13", trim: "#24216a", print: "#ffffff" }, // Lille
+  "273": { pattern: "solid", base: "#f58113", accent: "#f58113", trim: "#111111", print: "#111111" }, // Lorient
+  "167": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#0a3f86", print: "#0a3f86" }, // Lyon
+  "176": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#2faee0", print: "#2faee0" }, // Marseille
+  "2502": { pattern: "stripes", base: "#111111", accent: "#c4161c", sleeves: "#c4161c", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // Nice
+  "6851": { pattern: "solid", base: "#0b1c3e", accent: "#0b1c3e", trim: "#ffffff", print: "#ffffff" }, // Paris FC
+  "160": { pattern: "vband", base: "#0b1c3e", accent: "#da291c", trim: "#da291c", print: "#ffffff", printOutline: "#0b1c3e" }, // Paris Saint-Germain
+  "169": { pattern: "solid", base: "#e13327", accent: "#e13327", trim: "#111111", print: "#111111" }, // Stade Rennais
+  "180": { pattern: "solid", base: "#009fe3", accent: "#009fe3", trim: "#ffffff", print: "#ffffff" }, // Strasbourg
+  "179": { pattern: "solid", base: "#5d2c82", accent: "#5d2c82", trim: "#ffffff", print: "#ffffff" }, // Toulouse
+  "170": { pattern: "solid", base: "#1d4e9b", accent: "#1d4e9b", trim: "#ffffff", print: "#ffffff" }, // Troyes
+
+  // Primeira Liga
+  "21607": { pattern: "solid", base: "#111111", accent: "#111111", trim: "#c60000", print: "#ffffff" }, // Académico de Viseu
+  "21613": { pattern: "solid", base: "#0047ab", accent: "#0047ab", trim: "#c60000", print: "#ffffff" }, // Alverca
+  "15784": { pattern: "solid", base: "#ffea01", accent: "#ffea01", trim: "#293dc2", print: "#293dc2" }, // Arouca
+  "1929": { pattern: "solid", base: "#e83030", accent: "#e83030", trim: "#ffffff", print: "#ffffff" }, // Benfica
+  "2994": { pattern: "solid", base: "#e30613", accent: "#e30613", sleeves: "#ffffff", trim: "#e30613", print: "#ffffff" }, // Braga
+  "3472": { pattern: "stripes", base: "#ffffff", accent: "#111111", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Nacional
+  "21581": { pattern: "solid", base: "#111111", accent: "#111111", trim: "#ffffff", print: "#ffffff" }, // Casa Pia
+  "12216": { pattern: "solid", base: "#ffea01", accent: "#ffea01", trim: "#293dc2", print: "#293dc2" }, // Estoril
+  "21610": { pattern: "solid", base: "#de0a26", accent: "#de0a26", trim: "#3b8132", print: "#ffffff" }, // Estrela da Amadora
+  "12698": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#183760", print: "#183760" }, // Famalicão
+  "437": { pattern: "stripes", base: "#ffffff", accent: "#0d4b9d", sleeves: "#0d4b9d", trim: "#0d4b9d", print: "#0d1b4a", printOutline: "#ffffff" }, // FC Porto
+  "3699": { pattern: "solid", base: "#de1f26", accent: "#de1f26", trim: "#ffffff", print: "#ffffff" }, // Gil Vicente
+  "552": { pattern: "stripes", base: "#e30613", accent: "#008222", trim: "#ffffff", print: "#ffffff", printOutline: "#111111" }, // Marítimo
+  "3696": { pattern: "solid", base: "#00843d", accent: "#00843d", trim: "#ffffff", print: "#ffffff" }, // Moreirense
+  "3822": { pattern: "stripes", base: "#ffffff", accent: "#3b8649", sleeves: "#3b8649", trim: "#3b8649", print: "#0a3d2a", printOutline: "#ffffff" }, // Rio Ave
+  "12215": { pattern: "solid", base: "#c60000", accent: "#c60000", trim: "#ffffff", print: "#ffffff" }, // Santa Clara
+  "2250": { pattern: "hoops", base: "#ffffff", accent: "#008127", trim: "#008127", print: "#111111", printOutline: "#ffffff" }, // Sporting CP
+  "5309": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#111111", print: "#111111" }, // Vitória de Guimarães
+
+  // Eredivisie
+  "2726": { pattern: "halves", base: "#00843d", accent: "#ffd500", trim: "#00843d", print: "#ffffff", printOutline: "#00843d" }, // ADO Den Haag
+  "140": { pattern: "solid", base: "#db0021", accent: "#db0021", trim: "#ffffff", print: "#ffffff" }, // AZ Alkmaar
+  "139": { pattern: "vband", base: "#ffffff", accent: "#d2122e", trim: "#d2122e", print: "#111111", printOutline: "#ffffff" }, // Ajax
+  "2566": { pattern: "stripes", base: "#e30613", accent: "#111111", trim: "#111111", print: "#ffffff", printOutline: "#111111" }, // Excelsior
+  "145": { pattern: "stripes", base: "#ffffff", accent: "#00843d", sleeves: "#00843d", trim: "#00843d", print: "#0a2240", printOutline: "#ffffff" }, // FC Groningen
+  "152": { pattern: "solid", base: "#e30613", accent: "#e30613", trim: "#ffffff", print: "#ffffff" }, // FC Twente
+  "153": { pattern: "solid", base: "#d20515", accent: "#d20515", trim: "#ffffff", print: "#ffffff" }, // FC Utrecht
+  "142": { pattern: "halves", base: "#ffffff", accent: "#e30613", trim: "#111111", print: "#111111", printOutline: "#ffffff" }, // Feyenoord
+  "143": { pattern: "solid", base: "#fcee33", accent: "#fcee33", trim: "#00843d", print: "#00843d" }, // Fortuna Sittard
+  "3706": { pattern: "hoops", base: "#e30613", accent: "#ffd500", trim: "#ffd500", print: "#ffffff", printOutline: "#e30613" }, // Go Ahead Eagles
+  "146": { pattern: "stripes", base: "#ffffff", accent: "#003eff", sleeves: "#003eff", trim: "#003eff", print: "#0a2240", printOutline: "#ffffff" }, // Heerenveen
+  "147": { pattern: "stripes", base: "#e30613", accent: "#111111", trim: "#00843d", print: "#ffffff", printOutline: "#111111" }, // NEC Nijmegen
+  "2565": { pattern: "solid", base: "#1f4fa0", accent: "#1f4fa0", trim: "#ffffff", print: "#ffffff" }, // PEC Zwolle
+  "148": { pattern: "stripes", base: "#ffffff", accent: "#ed1c24", sleeves: "#ed1c24", trim: "#ed1c24", print: "#111111", printOutline: "#ffffff" }, // PSV Eindhoven
+  "3736": { pattern: "halves", base: "#fcee33", accent: "#0b3a8c", trim: "#0b3a8c", print: "#ffffff", printOutline: "#0b3a8c" }, // SC Cambuur
+  "151": { pattern: "stripes", base: "#ffffff", accent: "#f31522", sleeves: "#f31522", trim: "#f31522", print: "#111111", printOutline: "#ffffff" }, // Sparta Rotterdam
+  "3735": { pattern: "solid", base: "#ffffff", accent: "#ffffff", trim: "#c60000", print: "#c60000" }, // Telstar
+  "156": { pattern: "stripes", base: "#ffffff", accent: "#e30613", trim: "#1a316b", print: "#1a316b", printOutline: "#ffffff" }, // Willem II
 };
 
 function isDark(hex: string) {

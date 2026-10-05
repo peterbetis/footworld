@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getGlobe } from "@/lib/globe";
 import type { League } from "@/lib/leagues";
 import LeagueSelect from "./LeagueSelect";
 
@@ -9,18 +10,32 @@ export default function Header({
   leagues: League[];
   selected: string | null;
 }) {
+  const globe = getGlobe();
   return (
     <header className="bg-header text-white shadow-md">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 sm:gap-6 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-[100rem] items-center gap-4 sm:gap-6 px-4 py-3 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span
+          {/* Logo: a small globe with green continents, same size as before. */}
+          <svg
             aria-hidden
-            className="flex h-[2.475rem] w-[2.475rem] items-center justify-center rounded-full bg-accent text-lg"
+            viewBox="0 0 100 100"
+            className="h-[2.475rem] w-[2.475rem] shrink-0 drop-shadow-sm"
           >
-            ⚽
-          </span>
+            <defs>
+              <radialGradient id="globe-shine" cx="35%" cy="30%" r="75%">
+                <stop offset="0" stopColor="#fff" stopOpacity="0.35" />
+                <stop offset="0.55" stopColor="#fff" stopOpacity="0" />
+                <stop offset="1" stopColor="#000" stopOpacity="0.35" />
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="49" fill="#1d6fd6" />
+            <path d={globe.graticule} fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="0.6" />
+            <path d={globe.land} fill="var(--accent)" stroke="#15803d" strokeWidth="0.6" />
+            <circle cx="50" cy="50" r="49" fill="url(#globe-shine)" />
+            <circle cx="50" cy="50" r="48.5" fill="none" stroke="#fff" strokeOpacity="0.35" />
+          </svg>
           <span className="text-xl font-extrabold tracking-tight">
-            Foot<span className="text-accent">World</span>
+            Foot<span className="text-[#57b5df]">World</span>
           </span>
         </Link>
         {/* min-w-0 lets the picker shrink (its label truncates) on narrow phones. */}

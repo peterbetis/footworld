@@ -2,26 +2,33 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import type { League } from "@/lib/leagues";
 import { useT } from "./I18nProvider";
 
 export default function LeagueSelect({
   leagues,
   selected,
+  variant = "header",
 }: {
   leagues: League[];
   selected: string | null;
+  /** "hero": the large picker on the landing overlay, open from the start. */
+  variant?: "header" | "hero";
 }) {
   const router = useRouter();
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const hero = variant === "hero";
+  const [open, setOpen] = useState(hero);
+  // The league being loaded after a pick (the page re-renders once it's ready).
+  const [chosen, setChosen] = useState<League | null>(null);
+  const [pending, startTransition] = useTransition();
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const listId = useId();
 
-  const current = leagues.find((l) => l.slug === selected) ?? null;
+  const current = (pending && chosen) || leagues.find((l) => l.slug === selected) || null;
 
   // Close when clicking outside.
   useEffect(() => {
@@ -48,7 +55,9 @@ export default function LeagueSelect({
   const choose = (league: League) => {
     if (!league.available) return;
     setOpen(false);
-    if (league.slug !== current?.slug) router.replace(`/?league=${league.urlSlug}`);
+    if (league.slug === current?.slug) return;
+    setChosen(league);
+    startTransition(() => router.replace(`/?league=${league.urlSlug}`));
   };
 
   const move = (dir: 1 | -1) => {
@@ -98,13 +107,19 @@ export default function LeagueSelect({
             openList();
           }
         }}
-        className="flex max-w-full items-center gap-3 sm:min-w-56 rounded-xl border border-white/15 bg-white/5 py-1.5 pr-3 pl-2 text-left transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className={`flex max-w-full cursor-pointer items-center text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+          hero
+            ? "w-full gap-4 rounded-2xl border border-white/20 bg-white/10 py-3 pr-4 pl-3 ring-4 ring-accent/35 hover:bg-white/15"
+            : "gap-3 rounded-xl border border-white/15 bg-white/5 py-1.5 pr-3 pl-2 hover:bg-white/10 sm:min-w-56"
+        }`}
       >
         {current ? (
           <>
-            <LeagueLogo league={current} size={35} />
+            <LeagueLogo league={current} size={hero ? 44 : 35} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{current.name}</span>
+              <span className={`block truncate font-semibold ${hero ? "text-base" : "text-sm"}`}>
+                {current.name}
+              </span>
               <span className="hidden text-xs text-white/60 sm:block">
                 {t.leagueCountry(current.country)}
               </span>
@@ -114,10 +129,14 @@ export default function LeagueSelect({
           <>
             <span
               aria-hidden
-              className="h-[2.2rem] w-[2.2rem] shrink-0 rounded-full border-2 border-dashed border-white/25"
+              className={`shrink-0 rounded-full border-2 border-dashed border-white/25 ${
+                hero ? "h-11 w-11" : "h-[2.2rem] w-[2.2rem]"
+              }`}
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-white/80">
+              <span
+                className={`block truncate font-medium text-white/80 ${hero ? "text-base" : "text-sm"}`}
+              >
                 {t.selectLeague}
               </span>
               <span className="hidden text-xs text-white/50 sm:block">
@@ -126,20 +145,28 @@ export default function LeagueSelect({
             </span>
           </>
         )}
-        <svg
-          aria-hidden
-          viewBox="0 0 20 20"
-          className={`h-[1.1rem] w-[1.1rem] text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path
-            d="M5 7.5l5 5 5-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {pending ? (
+          // Loading the picked league's teams.
+          <span
+            aria-hidden
+            className="h-[1.1rem] w-[1.1rem] animate-spin rounded-full border-2 border-white/25 border-t-white"
           />
-        </svg>
+        ) : (
+          <svg
+            aria-hidden
+            viewBox="0 0 20 20"
+            className={`h-[1.1rem] w-[1.1rem] text-white/70 transition-transform ${open ? "rotate-180" : ""}`}
+          >
+            <path
+              d="M5 7.5l5 5 5-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
       </button>
 
       {open && (
@@ -151,7 +178,9 @@ export default function LeagueSelect({
           aria-label={t.selectLeague}
           aria-activedescendant={`${listId}-${active}`}
           onKeyDown={onListKeyDown}
-          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/10 bg-header-2 py-1 shadow-2xl outline-none sm:left-0 sm:right-auto"
+          className={`absolute z-50 mt-2 overflow-hidden rounded-xl border border-white/10 bg-header-2 py-1 shadow-2xl outline-none ${
+            hero ? "inset-x-0" : "right-0 w-72 sm:right-auto sm:left-0"
+          }`}
         >
           {leagues.map((l, i) => {
             const isSelected = l.slug === current?.slug;

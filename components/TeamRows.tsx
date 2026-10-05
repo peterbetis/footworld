@@ -12,7 +12,12 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
 
   return (
     // Fixed at the expanded width so nothing reflows while the sidebar animates.
-    <table className="w-80 text-sm">
+    // Fixed layout: long names truncate instead of pushing the code column out.
+    <table className="w-64 table-fixed text-sm">
+      <colgroup>
+        <col />
+        <col className="w-12" />
+      </colgroup>
       <thead className="sr-only">
         <tr>
           <th scope="col">{t.teamColumn}</th>
@@ -36,11 +41,12 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => toggle(t.urlSlug)}
-                  className="flex w-full items-center gap-3 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent"
+                  className="flex w-full cursor-pointer items-center gap-3 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent"
                 >
                   <TeamLogo team={t} />
                   <span
-                    className={`truncate whitespace-nowrap ${REVEAL} ${selected ? "font-bold" : "font-medium"}`}
+                    title={t.name}
+                    className={`min-w-0 truncate whitespace-nowrap ${REVEAL} ${selected ? "font-bold" : "font-medium"}`}
                   >
                     {t.name}
                   </span>
