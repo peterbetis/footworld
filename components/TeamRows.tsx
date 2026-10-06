@@ -1,6 +1,7 @@
 "use client";
 
 import type { Team } from "@/lib/teams";
+import { setHoveredTeam } from "@/lib/hoveredTeam";
 import { useSelectedTeam } from "@/lib/useSelectedTeam";
 import { useT } from "./I18nProvider";
 import TeamLogo from "./TeamLogo";
@@ -30,6 +31,9 @@ export default function TeamRows({ teams }: { teams: Team[] }) {
           return (
             <tr
               key={t.id}
+              // Mirrored on the leagues map: this club's crest shows hovered there too.
+              onPointerEnter={() => setHoveredTeam(t.id)}
+              onPointerLeave={() => setHoveredTeam(null)}
               className={`relative border-t border-border transition-colors first:border-t-0 has-[:focus-visible]:bg-bg ${
                 selected ? "bg-accent/10 shadow-[inset_3px_0_0_var(--accent)]" : "hover:bg-bg"
               }`}

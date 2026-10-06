@@ -15,7 +15,8 @@ const CANVAS_H = 135;
 
 /**
  * Current-season kits from Wikipedia, falling back to the drawn kits when the
- * club has no Wikipedia kit data (or Wikipedia can't be reached).
+ * club has no Wikipedia kit data (or Wikipedia can't be reached). A compact row of
+ * three, shown under the country map in the club panel.
  */
 export default function KitsGallery({
   wiki: wikiPromise,
@@ -39,7 +40,7 @@ export default function KitsGallery({
   if (wiki) {
     return (
       <>
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
+        <ul className="grid grid-cols-3 gap-2">
           {wiki.kits.map((kit) => (
             <KitCard key={kit.key} label={label(kit.key)} colours={kit.colours}>
               <WikiKitImage layers={kit.layers} label={t.kitLabel(label(kit.key), teamName)} />
@@ -47,7 +48,7 @@ export default function KitsGallery({
           ))}
         </ul>
         {wiki.season !== currentSeason && (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-text">
+          <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-text">
             {wiki.season ? t.kitsOlderSeason(wiki.season) : t.kitsUnknownSeason}
           </p>
         )}
@@ -62,7 +63,7 @@ export default function KitsGallery({
   ];
   return (
     <>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
+      <ul className="grid grid-cols-3 gap-2">
         {drawn.map(({ key, kit }) => (
           <KitCard
             key={key}
@@ -76,7 +77,7 @@ export default function KitsGallery({
             ]}
           >
             <figure
-              className="relative w-full max-w-32"
+              className="relative w-full max-w-20"
               role="img"
               aria-label={t.kitLabel(label(key), teamName)}
             >
@@ -87,14 +88,14 @@ export default function KitsGallery({
                   className="absolute top-[30%] left-[60%] -translate-x-1/2 -translate-y-1/2"
                   aria-hidden
                 >
-                  <TeamLogo team={team} size={24} />
+                  <TeamLogo team={team} size={14} />
                 </span>
               )}
             </figure>
           </KitCard>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted">{t.kitsIllustrated}</p>
+      <p className="mt-2 text-[11px] text-muted">{t.kitsIllustrated}</p>
     </>
   );
 }
@@ -109,16 +110,16 @@ function KitCard({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex flex-col items-center rounded-xl border border-border bg-bg px-3 pt-4 pb-3">
+    <li className="flex flex-col items-center rounded-lg border border-border bg-bg px-2 pt-2 pb-1.5">
       {children}
-      <p className="mt-2 text-sm font-semibold">{label}</p>
+      <p className="mt-1 text-xs font-semibold">{label}</p>
       {colours.length > 0 && (
-        <div className="mt-1.5 flex items-center gap-1" aria-hidden>
+        <div className="mt-1 flex items-center gap-0.5" aria-hidden>
           {colours.map((c) => (
             <span
               key={c}
               title={c}
-              className="h-[0.9625rem] w-[0.9625rem] rounded-full ring-1 ring-black/15 dark:ring-white/20"
+              className="h-2.5 w-2.5 rounded-full ring-1 ring-black/15 dark:ring-white/20"
               style={{ background: c }}
             />
           ))}
@@ -133,7 +134,7 @@ function WikiKitImage({ layers, label }: { layers: KitLayer[]; label: string }) 
   // Wikipedia's outline layers are white outside the kit silhouette (that's how the
   // template cuts out the shape), so the kit sits on a white panel in both themes.
   return (
-    <div className="w-full max-w-32 rounded-lg bg-white p-2 shadow-sm ring-1 ring-black/5">
+    <div className="w-full max-w-20 rounded-md bg-white p-1 shadow-sm ring-1 ring-black/5">
       <div
         role="img"
         aria-label={label}
@@ -167,10 +168,10 @@ export function KitsGallerySkeleton({ label }: { label: string }) {
     <div
       aria-busy
       aria-label={label}
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl"
+      className="grid grid-cols-3 gap-2"
     >
       {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="h-52 animate-pulse rounded-xl bg-bg" />
+        <div key={i} className="h-36 animate-pulse rounded-lg bg-bg" />
       ))}
     </div>
   );

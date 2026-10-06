@@ -1,0 +1,30 @@
+{
+  "hosting": {
+    "site": "footworldmap",
+    "public": "public"
+  },
+  "apphosting": [
+    {
+      "backendId": "footworld",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    },
+    {
+      "backendId": "footworld",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    }
+  ]
+}

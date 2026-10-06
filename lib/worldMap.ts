@@ -123,18 +123,17 @@ const built = (() => {
 
   const height = Math.ceil(y1 - y0);
 
-  // Default view: aligned to the map's bottom edge and zoomed so only the southern
-  // 55% of Greenland shows at the top. Horizontally centred on the span from Canada's
-  // western border (141°W) to Australia's east coast, which that zoom keeps fully in
-  // view with a slim margin.
+  // Default view: aligned to the map's bottom edge, zoomed 10% past the point where
+  // only the southern 55% of Greenland shows at the top, and centred horizontally on
+  // Spain (Madrid's longitude).
   const GREENLAND_VISIBLE = 0.55;
+  const EXTRA_ZOOM = 1.1;
   const greenland = byNameFor(features, "Greenland");
   const [[, gTop], [, gBottom]] = greenland ? path.bounds(greenland) : [[0, 0], [0, height * 0.4]];
   const topEdge = gBottom - GREENLAND_VISIBLE * (gBottom - gTop);
-  const k = height / (height - topEdge);
-  const west = projection([-141, 60])![0];
-  const east = projection([153.6, -28])![0];
-  const defaultView = { k, tx: WIDTH / 2 - ((west + east) / 2) * k, ty: height - height * k };
+  const k = (height / (height - topEdge)) * EXTRA_ZOOM;
+  const spainX = projection([-3.7, 40.4])![0];
+  const defaultView = { k, tx: WIDTH / 2 - spainX * k, ty: height - height * k };
 
   const map: WorldMap = {
     width: WIDTH,
@@ -178,4 +177,16 @@ export function locateCountry(name: string): MapPoint | null {
   if (!xy) return null;
   const tint = fixed?.tint ? built.byName.get(fixed.tint) : f;
   return { x: xy[0], y: xy[1], countryKey: tint ? built.keyOf(tint) : null };
+}
+
+/** A longitude/latitude box ([west, south, east, north]) as a rectangle in map units. */
+export function boxForBounds([west, south, east, north]: [number, number, number, number]) {
+  const [x0, y0] = built.projection([west, north])!;
+  const [x1, y1] = built.projection([east, south])!;
+  return { x0, y0, x1, y1 };
+}
+
+/** The world map's projection, for drawing other map data in the same coordinates. */
+export function worldProjection() {
+  return built.projection;
 }

@@ -1,5 +1,13 @@
 import "server-only";
 import type { Locale } from "./i18n";
+import {
+  claimIds,
+  claimString,
+  claimValues,
+  getEntities,
+  label,
+  type WikidataEntity,
+} from "./wikidata";
 import { commonsThumb, wikidataApi, wikipediaApi } from "./wikipedia";
 
 /**
@@ -17,56 +25,6 @@ export interface PlayerProfile {
   portrait: string | null;
   /** Wikidata's height, more precise than ESPN's. */
   heightCm: number | null;
-}
-
-interface WikidataClaim {
-  rank?: "preferred" | "normal" | "deprecated";
-  mainsnak: { datavalue?: { value: unknown } };
-  qualifiers?: Record<string, unknown>;
-}
-
-interface WikidataEntity {
-  id: string;
-  labels?: Record<string, { value: string }>;
-  sitelinks?: Record<string, { title: string }>;
-  claims?: Record<string, WikidataClaim[]>;
-}
-
-/**
- * Current values first: preferred rank, then statements without an end date
- * (London's countries include the Roman Empire, with an end date).
- */
-const claimValues = (e: WikidataEntity | undefined, prop: string) => {
-  const claims = (e?.claims?.[prop] ?? []).filter((c) => c.rank !== "deprecated");
-  const preferred = claims.filter((c) => c.rank === "preferred");
-  const current = preferred.length > 0 ? preferred : claims.filter((c) => !c.qualifiers?.P582);
-  return (current.length > 0 ? current : claims).flatMap((c) =>
-    c.mainsnak.datavalue ? [c.mainsnak.datavalue.value] : [],
-  );
-};
-
-const claimIds = (e: WikidataEntity | undefined, prop: string) =>
-  claimValues(e, prop).flatMap((v) => {
-    const id = (v as { id?: string }).id;
-    return id ? [id] : [];
-  });
-
-const claimString = (e: WikidataEntity | undefined, prop: string) =>
-  claimValues(e, prop).find((v): v is string => typeof v === "string");
-
-const label = (e: WikidataEntity | undefined, locale: Locale) =>
-  e?.labels?.[locale]?.value ?? e?.labels?.en?.value ?? null;
-
-async function getEntities(ids: string[], props: string, locale: Locale) {
-  if (ids.length === 0) return {} as Record<string, WikidataEntity>;
-  const data = await wikidataApi({
-    action: "wbgetentities",
-    ids: ids.join("|"),
-    props,
-    languages: locale === "en" ? "en" : `${locale}|en`,
-    sitefilter: "enwiki",
-  });
-  return (data?.entities ?? {}) as Record<string, WikidataEntity>;
 }
 
 /**
@@ -116,7 +74,7 @@ async function infoboxRaw(title: string, field: RegExp) {
 }
 
 /** Wikitext as plain text: references, comments and templates dropped, links unwrapped. */
-function plainText(value: string) {
+export function plainText(value: string) {
   const clean = value
     .replace(/<ref[^>]*\/>|<ref[\s\S]*?<\/ref>|<!--[\s\S]*?-->|<br\s*\/?>/g, "")
     .replace(/\{\{[^{}]*\}\}/g, "")

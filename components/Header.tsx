@@ -35,7 +35,10 @@ export default function Header({
             <circle cx="50" cy="50" r="48.5" fill="none" stroke="#fff" strokeOpacity="0.35" />
           </svg>
           <span className="text-xl font-extrabold tracking-tight">
-            Foot<span className="text-[#57b5df]">World</span>
+            Foot
+            <span className="bg-gradient-to-r from-[var(--brand-1)] to-[var(--brand-2)] bg-clip-text text-transparent">
+              World
+            </span>
           </span>
         </Link>
         {/* min-w-0 lets the picker shrink (its label truncates) on narrow phones. */}

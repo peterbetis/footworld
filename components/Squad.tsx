@@ -1,3 +1,4 @@
+import { getClubInfo } from "@/lib/clubInfo";
 import { getFormation } from "@/lib/formation";
 import { getMessages, type Locale } from "@/lib/i18n";
 import { getKitSet } from "@/lib/kits";
@@ -33,6 +34,17 @@ export default async function Squad({
   const team = (await getTeams(leagueSlug).catch(() => [])).find((x) => x.id === teamId);
   // Cached too; for the league badge on the player modal.
   const league = (await getLeagues().catch(() => [])).find((l) => l.slug === leagueSlug);
+  // Also streamed: the club panel (Wikidata, ESPN's last-season table, the country map).
+  const clubInfo = getClubInfo({
+    teamId,
+    leagueSlug,
+    leagueCountry: league?.country ?? "",
+    season: squad.season,
+    locale,
+  }).catch((err) => {
+    console.error(err);
+    return null;
+  });
   const kits = getKitSet(teamId, squad.teamColor);
   // Also streamed: the current manager (Wikipedia/Wikidata).
   const manager = getManager(teamId, locale).catch((err) => {
@@ -97,6 +109,7 @@ export default async function Squad({
         formation={formation}
         wikiKits={wikiKits}
         manager={manager}
+        clubInfo={clubInfo}
         season={squad.season}
       />
     </section>

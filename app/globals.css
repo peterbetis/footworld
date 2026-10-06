@@ -10,6 +10,9 @@
   --header: #0b1324;
   --header-2: #131d33;
   --accent: #22c55e;
+  /* Brand blues (the globe logo and "World" in the title), dark to light. */
+  --brand-1: #1d6fd6;
+  --brand-2: #8fd3f4;
   /* World map: Google-Maps-style water, near-white land, soft grey borders. */
   --map-sea: #aadaff;
   --map-land: #f8f9fa;
@@ -210,4 +213,23 @@ body {
     var(--club-2, var(--surface)) 100%
   );
   color: var(--club-1-ink, var(--text));
+}
+
+/* Leagues map: club crests pop in as a country's clubs appear. */
+@keyframes crest-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+.crest-in {
+  animation: crest-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* The leagues map's header in the brand blues (it sits outside any club's colours). */
+.brand-theme {
+  --club-1: var(--brand-1);
+  --club-2: var(--brand-2);
+  --club-1-ink: #ffffff;
+  --club-2-ink: #0c111d;
 }

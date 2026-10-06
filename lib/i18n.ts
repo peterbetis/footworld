@@ -46,14 +46,12 @@ const en = {
   seasonSquad: (season: string) => `${season} squad`,
   players: (n: number) => plural(n, "player", "players"),
 
-  // Nationalities panel
-  nationalities: "Nationalities",
+  // Nationalities (in the squad panel)
   countries: (n: number) => plural(n, "country", "countries"),
   playersFrom: (n: number, country: string) => `${plural(n, "player", "players")} from ${country}`,
   showAll: "Show all",
   clearSelection: "Clear the selected country and player",
   hintFlagOrPlayer: "Click a flag or a player to highlight",
-  hintPlayer: "Click a player to highlight",
   sharesLabel: "Nationalities by share of the squad",
   shareOf: (country: string, count: number, total: number, pct: number) =>
     `${country}: ${count} of ${total} players (${pct}%)`,
@@ -69,7 +67,6 @@ const en = {
 
   // Squad panel
   squad: "Squad",
-  squadHint: "Players by position · most used formation",
   goalkeepers: "Goalkeepers",
   defenders: "Defenders",
   midfielders: "Midfielders",
@@ -78,6 +75,7 @@ const en = {
 
   // Formation
   mostUsedFormation: "Most used formation",
+  usualFormation: "Usual formation",
   noLineups: "No league line-ups to analyse yet this season.",
   formationUsage: (used: number, analysed: number) =>
     `Used in ${used} of the last ${analysed} league matches · most frequent starter in each position`,
@@ -112,10 +110,41 @@ const en = {
   usualSpot: (n: number) => `Usual spot in the team, from ${plural(n, "league start", "league starts")}`,
   noStartsYet: "No league starts yet: shown in their line",
 
+  // Leagues map
+  leaguesMap: "Leagues map",
+  leaguesCount: (n: number) => plural(n, "league", "leagues"),
+  leaguesMapHint: "Click a country to see its clubs",
+  leaguesMapClubsHint: "Click a club to open it",
+  openLeagueOnMap: (league: string) => `Show ${league} clubs on the map`,
+  goToClub: (club: string) => `Go to ${club}`,
+  allLeagues: "All leagues",
+  loadingClubs: "Loading clubs",
+
+  // Club information
+  clubInfo: "Club information",
+  clubInfoHint: "Stadium, kits, history and honours",
+  loadingClubInfo: "Loading club information",
+  clubInfoUnavailable: "Couldn't load this club's information right now.",
+  city: "City",
+  founded: "Founded",
+  stadium: "Stadium",
+  capacity: (n: string) => `${n} seats`,
+  titles: "Titles",
+  leagueTitles: (n: number): string => (n === 1 ? "league title" : "league titles"),
+  europeanCups: (n: number): string =>
+    n === 1 ? "European Cup / Champions League" : "European Cups / Champions Leagues",
+  lastSeason: "Last season",
+  leaguePosition: (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]} in the league`;
+  },
+  notInLeagueLastSeason: "Not in the league (promoted)",
+  stadiumPhoto: (name: string) => `Photo of ${name}`,
+  stadiumOnMap: (name: string) => `Map showing where ${name} is`,
+
   // Kits
   kits: "Kits",
-  kitCount: (n: number) => plural(n, "kit", "kits"),
-  kitsHint: "This season's kits",
   kitsIllustrated: "Illustrated from club colours · not official images",
   kitsLoading: "Loading kits",
   kitsOlderSeason: (season: string) =>
@@ -174,13 +203,11 @@ const es: Messages = {
   seasonSquad: (season) => `Plantilla ${season}`,
   players: (n) => plural(n, "jugador", "jugadores"),
 
-  nationalities: "Nacionalidades",
   countries: (n) => plural(n, "país", "países"),
   playersFrom: (n, country) => `${plural(n, "jugador", "jugadores")} de ${country}`,
   showAll: "Ver todos",
   clearSelection: "Quitar el país y el jugador seleccionados",
   hintFlagOrPlayer: "Pulsa una bandera o un jugador para destacarlo",
-  hintPlayer: "Pulsa un jugador para destacarlo",
   sharesLabel: "Nacionalidades por porcentaje de la plantilla",
   shareOf: (country, count, total, pct) => `${country}: ${count} de ${total} jugadores (${pct}%)`,
   markerLabel: (country, n) => `${country}: ${plural(n, "jugador", "jugadores")}`,
@@ -194,7 +221,6 @@ const es: Messages = {
   zoomHintTouch: "Pellizca para hacer zoom · arrastra para moverte",
 
   squad: "Plantilla",
-  squadHint: "Jugadores por posición · formación más utilizada",
   goalkeepers: "Porteros",
   defenders: "Defensas",
   midfielders: "Centrocampistas",
@@ -202,6 +228,7 @@ const es: Messages = {
   numberLabel: (n) => `dorsal ${n}`,
 
   mostUsedFormation: "Formación más utilizada",
+  usualFormation: "Formación habitual",
   noLineups: "Todavía no hay alineaciones de liga que analizar esta temporada.",
   formationUsage: (used, analysed) =>
     `Utilizada en ${used} de los últimos ${analysed} partidos de liga · titular más habitual en cada posición`,
@@ -231,9 +258,33 @@ const es: Messages = {
   usualSpot: (n) => `Posición habitual en el equipo, según ${plural(n, "titularidad", "titularidades")} en liga`,
   noStartsYet: "Aún sin titularidades en liga: se muestra en su línea",
 
+  leaguesMap: "Mapa de ligas",
+  leaguesCount: (n) => plural(n, "liga", "ligas"),
+  leaguesMapHint: "Pulsa un país para ver sus clubes",
+  leaguesMapClubsHint: "Pulsa un club para verlo",
+  openLeagueOnMap: (league) => `Ver los clubes de ${league} en el mapa`,
+  goToClub: (club) => `Ir a ${club}`,
+  allLeagues: "Todas las ligas",
+  loadingClubs: "Cargando clubes",
+
+  clubInfo: "Información del club",
+  clubInfoHint: "Estadio, equipaciones, historia y palmarés",
+  loadingClubInfo: "Cargando información del club",
+  clubInfoUnavailable: "No se pudo cargar la información de este club.",
+  city: "Ciudad",
+  founded: "Fundación",
+  stadium: "Estadio",
+  capacity: (n) => `${n} espectadores`,
+  titles: "Títulos",
+  leagueTitles: (n) => (n === 1 ? "liga" : "ligas"),
+  europeanCups: (n) => (n === 1 ? "Copa de Europa / Champions" : "Copas de Europa / Champions"),
+  lastSeason: "Temporada pasada",
+  leaguePosition: (n) => `${n}.º en liga`,
+  notInLeagueLastSeason: "No estaba en la liga (ascendido)",
+  stadiumPhoto: (name) => `Foto de ${name}`,
+  stadiumOnMap: (name) => `Mapa con la ubicación de ${name}`,
+
   kits: "Equipaciones",
-  kitCount: (n) => plural(n, "equipación", "equipaciones"),
-  kitsHint: "Equipaciones de esta temporada",
   kitsIllustrated: "Ilustradas con los colores del club · no son imágenes oficiales",
   kitsLoading: "Cargando equipaciones",
   kitsOlderSeason: (season) =>

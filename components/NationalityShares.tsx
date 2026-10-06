@@ -43,10 +43,9 @@ export default function NationalityShares({
   return (
     <ul
       aria-label={t.sharesLabel}
-      // Below lg: a horizontal row, right-aligned via auto margin (not justify-end) so an
-      // overflowing row still scrolls from its first item. lg and up: a vertical column
-      // that fills its (map-height) parent and scrolls.
-      className="flex w-fit max-w-full min-w-0 gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] md:ml-auto lg:absolute lg:inset-0 lg:ml-0 lg:w-full lg:max-w-none lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:p-2.5"
+      // Below lg: a horizontal row above the map, scrolling sideways when it doesn't fit.
+      // lg and up: a column to the left of the map, as tall as the map, scrolling.
+      className="flex w-fit max-w-full min-w-0 gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] lg:absolute lg:inset-0 lg:w-full lg:max-w-none lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:p-2"
     >
       {sorted.map((c) => {
         const share = total ? c.count / total : 0;
@@ -69,8 +68,9 @@ export default function NationalityShares({
               onFocus={() => onPreview(c.country)}
               onBlur={() => onPreview(null)}
               style={{ minWidth: Math.max(56, size + 8) }}
-              // In the row (below lg), rings sit on a common baseline so the labels line up.
-              className={`flex cursor-pointer flex-col items-center justify-end rounded-lg lg:justify-start px-1 pt-1 pb-0.5 transition-[background-color,opacity,box-shadow,filter] duration-200 lg:w-full lg:flex-row lg:gap-2 lg:px-1.5 lg:py-1 outline-none focus-visible:outline-2 focus-visible:outline-accent ${
+              // In the row, rings sit on a common baseline so the labels line up; in the
+              // column, each chart is a left-aligned row: ring, then percentage and country.
+              className={`flex cursor-pointer flex-col items-center justify-end rounded-lg px-1 pt-1 pb-0.5 transition-[background-color,opacity,box-shadow,filter] duration-200 outline-none lg:w-full lg:flex-row lg:justify-start lg:gap-2 lg:px-1.5 lg:py-1 focus-visible:outline-2 focus-visible:outline-accent ${
                 isSelected
                   ? "bg-accent/25 shadow-sm ring-2 ring-accent ring-inset"
                   : isPreviewed
@@ -78,8 +78,8 @@ export default function NationalityShares({
                     : "hover:bg-bg"
               } ${dimmed ? "opacity-35 grayscale-[60%] hover:opacity-100 hover:grayscale-0" : ""}`}
             >
-              {/* On lg the ring sits centred in a slot as wide as the biggest ring, so the
-                  labels beside the rings line up. */}
+              {/* In the column, rings are centred in a slot as wide as the biggest ring,
+                  so the labels beside them line up. */}
               <span
                 className="flex shrink-0 items-center justify-center lg:w-[var(--slot)]"
                 style={{ "--slot": `${MAX_RING}px` } as React.CSSProperties}
@@ -118,7 +118,7 @@ export default function NationalityShares({
               <span className="flex w-full min-w-0 flex-col items-center lg:items-start">
                 <span className="mt-0.5 text-xs font-bold tabular-nums lg:mt-0">{pct}%</span>
                 <span
-                  className={`w-full truncate text-center text-[11px] leading-tight lg:text-left lg:text-xs ${
+                  className={`w-full truncate text-center text-[11px] leading-tight lg:text-left ${
                     isSelected ? "font-semibold text-text" : "text-muted"
                   }`}
                 >

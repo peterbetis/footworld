@@ -29,7 +29,7 @@ export default function SectionBar({
       // Colours come from the club theme (see .section-bar in globals.css): a strong
       // two-colour tint and stripe when expanded, a light one when collapsed.
       data-open={open || undefined}
-      className="section-bar group/bar relative flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6"
+      className="section-bar group/bar relative flex flex-wrap items-center gap-x-4 gap-y-0 px-4 py-1.5 sm:gap-y-1 sm:px-6 sm:py-2"
     >
       <button
         type="button"
@@ -41,7 +41,7 @@ export default function SectionBar({
         <span
           aria-hidden
           // Softened so the icon doesn't outweigh the title; full strength on hover.
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c1)] text-[var(--club-1-ink,white)] opacity-70 shadow-sm ring-[1.5px] ring-[var(--c2)] ring-offset-0 transition-opacity duration-200 group-hover/bar:opacity-100"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--c1)] sm:h-7 sm:w-7 text-[var(--club-1-ink,white)] opacity-70 shadow-sm ring-[1.5px] ring-[var(--c2)] ring-offset-0 transition-opacity duration-200 group-hover/bar:opacity-100"
         >
           {icon}
         </span>
@@ -54,14 +54,14 @@ export default function SectionBar({
       </button>
 
       {status != null && (
-        <div className="pointer-events-none relative order-last basis-full text-xs text-muted sm:order-none sm:ml-auto sm:basis-auto">
+        <div className="pointer-events-none relative order-last basis-full text-[11px] leading-tight text-muted sm:order-none sm:ml-auto sm:basis-auto sm:text-xs">
           {status}
         </div>
       )}
 
       <span
         aria-hidden
-        className={`pointer-events-none flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full border shadow-sm transition-colors ${
+        className={`pointer-events-none flex h-6.5 w-6.5 shrink-0 sm:h-7.5 sm:w-7.5 items-center justify-center rounded-full border shadow-sm transition-colors ${
           open
             ? "border-[var(--c2)] bg-[var(--c2)] text-[var(--club-2-ink,white)]"
             : "border-[color-mix(in_oklab,var(--c1)_60%,transparent)] bg-surface text-[color-mix(in_oklab,var(--c1)_60%,var(--text))] group-hover/bar:border-[var(--c1)]"

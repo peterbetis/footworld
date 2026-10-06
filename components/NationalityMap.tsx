@@ -49,8 +49,8 @@ export interface CountryMarker {
   countryKey: string | null;
 }
 
-interface Placed {
-  marker: CountryMarker;
+export interface Placed<T = CountryMarker> {
+  marker: T;
   ax: number;
   ay: number;
   x: number;
@@ -72,13 +72,13 @@ const HOME: View = { k: 1, tx: 0, ty: 0 };
  * Nudges markers apart so none overlap, keeping each as close as possible to
  * its country. Works in on-screen pixels, so it adapts to width and zoom.
  */
-function placeMarkers(
-  anchors: { marker: CountryMarker; ax: number; ay: number }[],
+export function placeMarkers<T>(
+  anchors: { marker: T; ax: number; ay: number }[],
   w: number,
   h: number,
   r: number,
 ) {
-  const pts: Placed[] = anchors.map((a) => ({ ...a, x: a.ax, y: a.ay }));
+  const pts: Placed<T>[] = anchors.map((a) => ({ ...a, x: a.ax, y: a.ay }));
   // Extra room so count badges (top-right of each flag) don't get covered.
   const min = 2 * r + 10;
   for (let iter = 0; iter < 400; iter++) {

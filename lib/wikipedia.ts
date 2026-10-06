@@ -164,9 +164,25 @@ export function wikipediaApi(params: Record<string, string>) {
   return getJson("https://en.wikipedia.org/w/api.php", { formatversion: "2", ...params });
 }
 
+/** Wikidata's SPARQL query service; returns the result rows (cached for a day). */
+export async function wikidataSparql(query: string) {
+  const res = await fetch(`https://query.wikidata.org/sparql?${new URLSearchParams({ query })}`, {
+    headers: { ...HEADERS, Accept: "application/sparql-results+json" },
+    next: { revalidate: ONE_DAY },
+  });
+  if (!res.ok) throw new Error(`Wikidata SPARQL ${res.status}`);
+  const data = await res.json();
+  return (data?.results?.bindings ?? []) as Record<string, { value: string }>[];
+}
+
 /** Wikidata's API (entities are keyed by id). */
 export function wikidataApi(params: Record<string, string>) {
   return getJson("https://www.wikidata.org/w/api.php", params);
+}
+
+/** The club's English Wikipedia article title, by ESPN team id. */
+export function clubArticleTitle(teamId: string): string | null {
+  return ARTICLES[teamId] ?? null;
 }
 
 /** The club's article title and wikitext, or null if unmapped or missing. Cached per club. */

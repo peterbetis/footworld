@@ -58,6 +58,7 @@ export default function FormationPitch({
   onSelect,
   onHover,
   onClear,
+  hoverDisabled = false,
 }: {
   formation: Promise<TeamFormation | null>;
   kit: Kit;
@@ -69,6 +70,8 @@ export default function FormationPitch({
   onHover: (playerId: string | null) => void;
   /** A click on the pitch itself (not on a player): clears the selection. */
   onClear?: () => void;
+  /** No hover highlight (a country is selected). */
+  hoverDisabled?: boolean;
 }) {
   const data = use(formationPromise);
   const t = useT();
@@ -83,8 +86,11 @@ export default function FormationPitch({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-xl font-extrabold tabular-nums">{data.formation}</span>
-        <span className="text-xs text-muted">
+        <span className="text-lg font-extrabold tabular-nums">
+          <span className="mr-1.5 text-sm font-semibold text-muted">{t.usualFormation}</span>
+          {data.formation}
+        </span>
+        <span className="text-[11px] leading-snug text-muted">
           {t.formationUsage(data.matchesUsed, data.matchesAnalysed)}
         </span>
       </div>
@@ -110,8 +116,10 @@ export default function FormationPitch({
               !isSelected &&
               country !== null &&
               (country === focusCountry || country === hoverCountry);
-            const dimmed =
-              anySelection && !isSelected && !(focusCountry && country === focusCountry);
+            // A hovered country (chart, map, tile or pitch) previews like a selection.
+            const dimmed = hoverCountry
+              ? country !== hoverCountry
+              : anySelection && !isSelected && !(focusCountry && country === focusCountry);
             const label = `${s.name}${s.number != null ? `, ${t.numberLabel(s.number)}` : ""}${player?.nationality ? `, ${player.nationality.name}` : ""} — ${s.position}, ${t.startedOf(s.starts, data.matchesUsed)}${player ? "" : ` (${t.leftSquad})`}`;
 
             return (
@@ -130,13 +138,13 @@ export default function FormationPitch({
                   onClick={() => player && onSelect(player)}
                   onPointerEnter={(e) => e.pointerType === "mouse" && onHover(s.playerId)}
                   onPointerLeave={() => onHover(null)}
-                  className={`group flex w-[4.5rem] cursor-pointer flex-col items-center transition-opacity duration-200 outline-none disabled:cursor-default ${
-                    dimmed ? "opacity-45 hover:opacity-100" : ""
+                  className={`group flex w-16 cursor-pointer flex-col items-center transition-opacity duration-200 outline-none disabled:cursor-default ${
+                    dimmed ? `opacity-45 ${hoverDisabled ? "" : "hover:opacity-100"}` : ""
                   }`}
                 >
                   <span
-                    className={`relative block w-10 drop-shadow-md transition-transform duration-200 ${
-                      isSelected ? "scale-115" : "group-enabled:group-hover:scale-110"
+                    className={`relative block w-8.5 drop-shadow-md transition-transform duration-200 ${
+                      isSelected ? "scale-115" : hoverDisabled ? "" : "group-enabled:group-hover:scale-110"
                     }`}
                     aria-hidden
                   >
@@ -151,13 +159,13 @@ export default function FormationPitch({
                       <FlagCircle
                         src={player.nationality.flag}
                         country=""
-                        size={18}
-                        className="absolute -right-2 bottom-0 ring-1 ring-white/80"
+                        size={15}
+                        className="absolute -right-1.5 bottom-0 ring-1 ring-white/80"
                       />
                     )}
                   </span>
                   <span
-                    className={`mt-0.5 max-w-full truncate rounded px-1 text-[12px] leading-4 font-semibold text-white ${
+                    className={`mt-0.5 max-w-full truncate rounded px-1 text-[11px] leading-4 font-semibold text-white ${
                       isSelected
                         ? "bg-accent"
                         : related
