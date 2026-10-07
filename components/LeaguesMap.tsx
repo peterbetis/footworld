@@ -328,9 +328,10 @@ export default function LeaguesMap({
       : [];
 
   return (
-    // Header in the brand blues, matching "World" in the page title.
-    <section aria-label={t.leaguesMap} className="brand-theme border-b border-border">
+    <section aria-label={t.leaguesMap} className="border-b border-border">
       <SectionBar
+        // The header's navy, like the league picker.
+        tone="nav"
         open={open}
         onToggle={() => setOpen((o) => !o)}
         controls={panelId}

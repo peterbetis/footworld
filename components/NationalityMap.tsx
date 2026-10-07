@@ -134,6 +134,8 @@ export default function NationalityMap({
   onPlayer,
   pins = [],
   selectedPlayerId = null,
+  hoveredPlayerId = null,
+  onPinHover,
 }: {
   map: MapData;
   markers: CountryMarker[];
@@ -151,6 +153,10 @@ export default function NationalityMap({
   pins?: MapPin[];
   /** Selected player, whose pin stands out. */
   selectedPlayerId?: string | null;
+  /** Player hovered in the squad: their pin shows hovered (enlarged, with its card). */
+  hoveredPlayerId?: string | null;
+  /** Players under the pointer on a pin or its card (null when none), for their tiles. */
+  onPinHover?: (playerIds: string[] | null) => void;
 }) {
   const t = useT();
   // Country hovered on the map itself (shape or flag): previews it across the page
@@ -472,6 +478,11 @@ export default function NationalityMap({
     }
   }
 
+  // The pin shown hovered: under the pointer, or the one of the player hovered in the squad.
+  const linkedPin =
+    pinGroups.find((g) => g.pins.some((p) => p.playerId === hoveredPlayerId))?.key ?? null;
+  const shownPin = pinOpen ?? linkedPin;
+
   return (
     <div
       ref={boxRef}
@@ -629,18 +640,22 @@ export default function NationalityMap({
             type="button"
             data-pin
             aria-label={label}
-            aria-expanded={single ? undefined : pinOpen === g.key}
+            aria-expanded={single ? undefined : shownPin === g.key}
             onClick={() => (single ? openPlayer(single.playerId) : setPinOpen(g.key))}
             onPointerEnter={(e) => {
               if (e.pointerType !== "mouse") return;
               cancelPinClose();
               setPinOpen(g.key);
+              onPinHover?.(g.pins.map((p) => p.playerId));
             }}
-            onPointerLeave={closePinSoon}
+            onPointerLeave={() => {
+              closePinSoon();
+              onPinHover?.(null);
+            }}
             onFocus={() => setPinOpen(g.key)}
             onBlur={closePinSoon}
             className={`pin-drop absolute z-[25] -translate-x-1/2 -translate-y-full cursor-pointer outline-none drop-shadow-[0_2px_2px_rgb(0_0_0/0.35)] transition-[scale] duration-150 [transform-origin:50%_100%] hover:scale-115 focus-visible:scale-115 ${
-              isSelected || pinOpen === g.key ? "scale-115" : ""
+              isSelected || shownPin === g.key ? "scale-115" : ""
             }`}
             style={{ left: g.x, top: g.y }}
           >
@@ -672,7 +687,7 @@ export default function NationalityMap({
 
       {/* Pin card: who was born there; names open the player's profile. */}
       {(() => {
-        const g = pinGroups.find((x) => x.key === pinOpen);
+        const g = pinGroups.find((x) => x.key === shownPin);
         if (!g || !width) return null;
         const CARD_W = 210;
         const places = [...new Set(g.pins.map((p) => p.place))];
@@ -680,15 +695,26 @@ export default function NationalityMap({
         const perRow = places.length > 1;
         const estH = 40 + g.pins.length * (perRow ? 40 : 28);
         const PIN_H = 32 * 1.15;
-        const above = g.y - PIN_H - 8 - estH >= 4;
+        // Above the pin if it fits, else on whichever side has more room; the list is
+        // capped to that room (and scrolls), so the map's edge never cuts the card off.
+        const roomAbove = g.y - PIN_H - 8 - 4;
+        const roomBelow = height - g.y - 6 - 4;
+        const above = roomAbove >= estH || roomAbove >= roomBelow;
+        const listMax = Math.max(60, Math.min(224, (above ? roomAbove : roomBelow) - 40));
         const left = Math.min(width - CARD_W / 2 - 6, Math.max(CARD_W / 2 + 6, g.x));
         return (
           <div
             data-pin
             role="group"
             aria-label={perRow ? t.bornHere(g.pins.length) : places[0]}
-            onPointerEnter={cancelPinClose}
-            onPointerLeave={closePinSoon}
+            onPointerEnter={() => {
+              cancelPinClose();
+              onPinHover?.(g.pins.map((p) => p.playerId));
+            }}
+            onPointerLeave={() => {
+              closePinSoon();
+              onPinHover?.(null);
+            }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             className="pin-card absolute z-40 cursor-default rounded-xl border border-border bg-surface p-2 text-left shadow-xl"
@@ -708,12 +734,18 @@ export default function NationalityMap({
               </svg>
               <span className="truncate">{perRow ? t.bornHere(g.pins.length) : places[0]}</span>
             </p>
-            <ul className="max-h-56 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+            <ul
+              className="overflow-y-auto overscroll-contain [scrollbar-width:thin]"
+              style={{ maxHeight: listMax }}
+            >
               {g.pins.map((p) => (
                 <li key={p.playerId}>
                   <button
                     type="button"
                     onClick={() => openPlayer(p.playerId)}
+                    // Just this player's tile while their name is hovered.
+                    onPointerEnter={() => onPinHover?.([p.playerId])}
+                    onPointerLeave={() => onPinHover?.(g.pins.map((x) => x.playerId))}
                     className="flex w-full cursor-pointer items-baseline gap-2 rounded-md px-1 py-1 text-left text-sm transition-colors outline-none hover:bg-accent/15 focus-visible:bg-accent/15 focus-visible:ring-1 focus-visible:ring-accent"
                   >
                     <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-accent">

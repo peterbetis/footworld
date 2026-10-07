@@ -203,16 +203,17 @@ body {
   opacity: 1;
 }
 
-/* Team header: a gradient from the club's primary colour to its secondary, with
-   text in the ink that reads on the primary (the name sits at that end). */
+/* Team header: a gradient between the home kit's two main colours (lib/clubColors.ts
+   homeKitColours), the darker on the left under the crest and name, whose text takes
+   the ink that reads on it. */
 .team-heading {
   background: linear-gradient(
     in oklab 110deg,
-    var(--club-1, var(--surface)) 0%,
-    var(--club-1, var(--surface)) 25%,
-    var(--club-2, var(--surface)) 100%
+    var(--home-left, var(--surface)) 0%,
+    var(--home-left, var(--surface)) 30%,
+    var(--home-right, var(--surface)) 100%
   );
-  color: var(--club-1-ink, var(--text));
+  color: var(--home-ink, var(--text));
 }
 
 /* Leagues map: club crests pop in as a country's clubs appear. */
@@ -226,10 +227,3 @@ body {
   animation: crest-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-/* The leagues map's header in the brand blues (it sits outside any club's colours). */
-.brand-theme {
-  --club-1: var(--brand-1);
-  --club-2: var(--brand-2);
-  --club-1-ink: #ffffff;
-  --club-2-ink: #0c111d;
-}

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Locale } from "./i18n";
 import { getPersonDetails } from "./playerProfile";
+import { claimString, getEntityLite } from "./wikidata";
 import { commonsThumb, getClubArticle, wikidataApi, wikipediaApi } from "./wikipedia";
 
 export interface Manager {
@@ -31,12 +32,6 @@ const claimIds = (e: WikidataEntity | undefined, prop: string) =>
     const v = c.mainsnak.datavalue?.value as { id?: string } | undefined;
     return v?.id ? [v.id] : [];
   });
-
-const claimString = (e: WikidataEntity | undefined, prop: string) =>
-  (e?.claims?.[prop] ?? []).flatMap((c) => {
-    const v = c.mainsnak.datavalue?.value;
-    return typeof v === "string" ? [v] : [];
-  })[0];
 
 /**
  * The club's current manager from its Wikipedia infobox (ESPN's coach data is
@@ -78,14 +73,8 @@ export async function getManager(teamId: string, locale: Locale): Promise<Manage
     // "Country for sport" is the football nationality; fall back to citizenship.
     const countryId = claimIds(person, "P1532")[0] ?? claimIds(person, "P27")[0];
     if (countryId) {
-      const country: WikidataEntity | undefined = (
-        await wikidataApi({
-          action: "wbgetentities",
-          ids: countryId,
-          props: "labels|claims",
-          languages: "en|es",
-        })
-      )?.entities?.[countryId];
+      // Just the country's name and flag (its full entry runs to megabytes).
+      const country = await getEntityLite(countryId, ["P41"], locale);
       nationality = country?.labels?.[locale]?.value ?? country?.labels?.en?.value ?? null;
       const flagFile = claimString(country, "P41");
       flag = flagFile ? commonsThumb(flagFile, 120) : null;

@@ -14,6 +14,7 @@ export default function SectionBar({
   title,
   badge,
   status,
+  tone = "club",
 }: {
   open: boolean;
   onToggle: () => void;
@@ -23,13 +24,27 @@ export default function SectionBar({
   title: string;
   badge?: React.ReactNode;
   status?: React.ReactNode;
+  /**
+   * "club": the club's colours (see .section-bar in globals.css), a strong two-colour
+   * tint and stripe when expanded, a light one when collapsed. "nav": the header's
+   * navy, with lighter navy and translucent white like the league picker, for the
+   * leagues map.
+   */
+  tone?: "club" | "nav";
 }) {
+  const nav = tone === "nav";
   return (
     <div
-      // Colours come from the club theme (see .section-bar in globals.css): a strong
-      // two-colour tint and stripe when expanded, a light one when collapsed.
       data-open={open || undefined}
-      className="section-bar group/bar relative flex flex-wrap items-center gap-x-4 gap-y-0 px-4 py-1.5 sm:gap-y-1 sm:px-6 sm:py-2"
+      className={`group/bar relative flex flex-wrap items-center gap-x-4 gap-y-0 px-4 py-1.5 transition-[background-color,box-shadow] duration-200 sm:gap-y-1 sm:px-6 sm:py-2 ${
+        nav
+          ? `text-white ${
+              open
+                ? "bg-header-2 shadow-[inset_4px_0_0_color-mix(in_oklab,var(--header-2)_60%,white)] hover:bg-[color-mix(in_oklab,var(--header-2)_88%,white)]"
+                : "bg-header shadow-[inset_4px_0_0_color-mix(in_oklab,var(--header-2)_80%,white)] hover:bg-header-2"
+            }`
+          : "section-bar"
+      }`}
     >
       <button
         type="button"
@@ -41,20 +56,34 @@ export default function SectionBar({
         <span
           aria-hidden
           // Softened so the icon doesn't outweigh the title; full strength on hover.
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--c1)] sm:h-7 sm:w-7 text-[var(--club-1-ink,white)] opacity-70 shadow-sm ring-[1.5px] ring-[var(--c2)] ring-offset-0 transition-opacity duration-200 group-hover/bar:opacity-100"
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-70 shadow-sm ring-[1.5px] ring-offset-0 transition-opacity duration-200 group-hover/bar:opacity-100 sm:h-7 sm:w-7 ${
+            nav
+              ? "bg-white/10 text-white ring-white/20"
+              : "bg-[var(--c1)] text-[var(--club-1-ink,white)] ring-[var(--c2)]"
+          }`}
         >
           {icon}
         </span>
         <span className="text-base font-bold tracking-tight">{title}</span>
         {badge != null && (
-          <span className="rounded-full bg-[color-mix(in_oklab,var(--c1)_16%,transparent)] px-2 py-0.5 text-xs font-semibold text-text ring-1 ring-[color-mix(in_oklab,var(--c1)_30%,transparent)]">
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${
+              nav
+                ? "bg-white/10 text-white ring-white/15"
+                : "bg-[color-mix(in_oklab,var(--c1)_16%,transparent)] text-text ring-[color-mix(in_oklab,var(--c1)_30%,transparent)]"
+            }`}
+          >
             {badge}
           </span>
         )}
       </button>
 
       {status != null && (
-        <div className="pointer-events-none relative order-last basis-full text-[11px] leading-tight text-muted sm:order-none sm:ml-auto sm:basis-auto sm:text-xs">
+        <div
+          className={`pointer-events-none relative order-last basis-full text-[11px] leading-tight sm:order-none sm:ml-auto sm:basis-auto sm:text-xs ${
+            nav ? "text-white/60" : "text-muted"
+          }`}
+        >
           {status}
         </div>
       )}
@@ -62,9 +91,13 @@ export default function SectionBar({
       <span
         aria-hidden
         className={`pointer-events-none flex h-6.5 w-6.5 shrink-0 sm:h-7.5 sm:w-7.5 items-center justify-center rounded-full border shadow-sm transition-colors ${
-          open
-            ? "border-[var(--c2)] bg-[var(--c2)] text-[var(--club-2-ink,white)]"
-            : "border-[color-mix(in_oklab,var(--c1)_60%,transparent)] bg-surface text-[color-mix(in_oklab,var(--c1)_60%,var(--text))] group-hover/bar:border-[var(--c1)]"
+          nav
+            ? open
+              ? "border-accent bg-accent text-white"
+              : "border-white/30 bg-white/5 text-white group-hover/bar:border-white/60"
+            : open
+              ? "border-[var(--c2)] bg-[var(--c2)] text-[var(--club-2-ink,white)]"
+              : "border-[color-mix(in_oklab,var(--c1)_60%,transparent)] bg-surface text-[color-mix(in_oklab,var(--c1)_60%,var(--text))] group-hover/bar:border-[var(--c1)]"
         } ${status != null ? "ml-auto sm:ml-0" : "ml-auto"}`}
       >
         <svg

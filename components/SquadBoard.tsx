@@ -8,7 +8,7 @@ import type { ClubInfo } from "@/lib/clubInfo";
 import type { Manager } from "@/lib/manager";
 import type { WikiKits } from "@/lib/wikiKits";
 import type { Player, Position } from "@/lib/players";
-import { clubPalette, clubThemeStyle } from "@/lib/clubColors";
+import { clubPalette, clubThemeStyle, homeKitColours } from "@/lib/clubColors";
 import { profileKey, requestProfile, useProfiles } from "@/lib/profileStore";
 import { setSelectedNationality } from "@/lib/selectedNationality";
 import ClubInfoPanel, { ClubInfoSkeleton } from "./ClubInfoPanel";
@@ -78,6 +78,8 @@ export default function SquadBoard({
   const [selection, setSelection] = useState<Selection>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredShare, setHoveredShare] = useState<string | null>(null);
+  // Players under the pointer on a birthplace pin (or its card): their tiles show hovered.
+  const [pinHoverIds, setPinHoverIds] = useState<string[] | null>(null);
   // The profile modal; its player stays set while it fades out.
   const [profilePlayer, setProfilePlayer] = useState<Player | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -188,7 +190,7 @@ export default function SquadBoard({
 
   return (
     // Club colours for the panel headers (inherited through display: contents).
-    <div className="club-theme contents" style={clubThemeStyle(clubPalette(kits))}>
+    <div className="club-theme contents" style={clubThemeStyle(clubPalette(kits), homeKitColours(kits))}>
       {/* Hidden on phones: the teams bar under the page header already shows the team. */}
       <header className="team-heading hidden items-center gap-3 border-b border-border px-4 py-2 sm:flex sm:px-6">
         {crest && (
@@ -281,6 +283,8 @@ export default function SquadBoard({
                     onPreview={setHoveredShare}
                     pins={pins}
                     selectedPlayerId={selection?.playerId ?? null}
+                    hoveredPlayerId={hoveredId}
+                    onPinHover={setPinHoverIds}
                     onPlayer={(id) => {
                       const p = players.find((x) => x.id === id);
                       if (p) openProfile(p);
@@ -309,7 +313,9 @@ export default function SquadBoard({
                           const country = p.nationality?.country ?? null;
                           const isSelected = selection?.playerId === p.id;
                           const sameCountry = focusCountry !== null && country === focusCountry;
-                          const isHovered = !playerHoverOff && hoveredId === p.id;
+                          const isHovered =
+                            (!playerHoverOff && hoveredId === p.id) ||
+                            (pinHoverIds?.includes(p.id) ?? false);
                           const hoverMate =
                             !isHovered && hoverCountry !== null && country === hoverCountry;
                           // Hovering a country anywhere (chart, map, tile, pitch) previews it

@@ -2,7 +2,8 @@ import "server-only";
 import { getTeams } from "./teams";
 import type { Locale } from "./i18n";
 import { claimIds, claimValues, getEntities, label } from "./wikidata";
-import { clubArticleTitle, wikipediaApi } from "./wikipedia";
+import type { WikidataEntity } from "./wikidata";
+import { clubArticleTitle, wikidataSparql, wikipediaApi } from "./wikipedia";
 
 /** A club placed on the leagues map at its stadium (or, failing that, its base). */
 export interface ClubSpot {
@@ -22,6 +23,73 @@ const coords = (v: unknown) => {
     ? { lat: c.latitude, lon: c.longitude }
     : null;
 };
+
+/**
+ * Each club's current home ground and headquarters: preferred statements first, then
+ * ones without an end date (clubs' full entries run past 2 MB for a league's worth).
+ */
+async function getGrounds(qids: string[]) {
+  const rows =
+    qids.length === 0
+      ? []
+      : await wikidataSparql(`
+          SELECT ?club ?prop ?place ?rank ?ended WHERE {
+            VALUES ?club { ${qids.map((q) => `wd:${q}`).join(" ")} }
+            VALUES (?p ?ps ?prop) { (p:P115 ps:P115 "venue") (p:P159 ps:P159 "base") }
+            ?club ?p ?st . ?st ?ps ?place ; wikibase:rank ?rank .
+            OPTIONAL { ?st pq:P582 ?ended }
+          }`);
+  const score = (r: Record<string, { value: string }>) =>
+    (r.rank.value.endsWith("PreferredRank") ? 2 : 0) + (r.ended ? 0 : 1) -
+    (r.rank.value.endsWith("DeprecatedRank") ? 10 : 0);
+  const best = new Map<string, { place: string; score: number }>();
+  for (const r of rows) {
+    const key = `${r.club.value.split("/").pop()}:${r.prop.value}`;
+    const place = r.place.value.split("/").pop()!;
+    const sc = score(r);
+    if (!place.startsWith("Q") || (best.get(key)?.score ?? -Infinity) >= sc) continue;
+    best.set(key, { place, score: sc });
+  }
+  const pick = (q: string, prop: string) => best.get(`${q}:${prop}`)?.place;
+  return {
+    venueOf: new Map(qids.map((q) => [q, pick(q, "venue")])),
+    baseOf: new Map(qids.map((q) => [q, pick(q, "base")])),
+  };
+}
+
+/**
+ * Stadiums and club bases with just what's needed (coordinates, whether it has a
+ * population, the area it's in) and their names, shaped like Wikidata entities. Their
+ * full entries are megabytes for cities like London: one SPARQL query instead.
+ */
+async function getPlaces(ids: string[], locale: Locale) {
+  if (ids.length === 0) return {} as Record<string, WikidataEntity>;
+  const [rows, named] = await Promise.all([
+    wikidataSparql(`
+      SELECT ?item ?coord ?pop ?area WHERE {
+        VALUES ?item { ${ids.map((id) => `wd:${id}`).join(" ")} }
+        OPTIONAL { ?item wdt:P625 ?coord }
+        OPTIONAL { ?item wdt:P1082 ?pop }
+        OPTIONAL { ?item wdt:P131 ?area }
+      }`),
+    getEntities(ids, "labels", locale),
+  ]);
+  const places: Record<string, WikidataEntity> = {};
+  for (const id of ids) places[id] = { id, labels: named[id]?.labels, claims: {} };
+  const statement = (value: unknown) => ({ mainsnak: { datavalue: { value } } });
+  for (const row of rows) {
+    const id = row.item.value.split("/").pop()!;
+    const claims = places[id]?.claims;
+    if (!claims) continue;
+    // "Point(lon lat)"
+    const point = row.coord?.value.match(/Point\(([-\d.]+) ([-\d.]+)\)/);
+    if (point && !claims.P625)
+      claims.P625 = [statement({ latitude: Number(point[2]), longitude: Number(point[1]) })];
+    if (row.pop && !claims.P1082) claims.P1082 = [statement(row.pop.value)];
+    if (row.area && !claims.P131) claims.P131 = [statement({ id: row.area.value.split("/").pop() })];
+  }
+  return places;
+}
 
 // Finished lookups, kept in memory for a day: stadiums don't move, and this saves
 // four upstream round trips (and Wikimedia's rate limits) on every map click.
@@ -81,12 +149,12 @@ async function lookUpLeagueClubs(leagueSlug: string, locale: Locale): Promise<Cl
   );
 
   const qids = titled.flatMap((x) => qidByTitle.get(resolve(x.title)) ?? []);
-  const clubs = await getEntities(qids, "claims", "en");
   // Current home ground (P115), and headquarters (P159) as a fallback.
-  const venueOf = new Map(qids.map((q) => [q, claimIds(clubs[q], "P115")[0]]));
-  const baseOf = new Map(qids.map((q) => [q, claimIds(clubs[q], "P159")[0]]));
-  const placeIds = [...new Set([...venueOf.values(), ...baseOf.values()].filter(Boolean))];
-  const places = await getEntities(placeIds, "claims|labels", locale);
+  const { venueOf, baseOf } = await getGrounds(qids);
+  const placeIds = [
+    ...new Set([...venueOf.values(), ...baseOf.values()].filter((id): id is string => !!id)),
+  ];
+  const places = await getPlaces(placeIds, locale);
   const at = (id: string | undefined) => (id ? coords(claimValues(places[id], "P625")[0]) : null);
   // City: the headquarters if it's a settlement (it has a population), else the town it
   // or the stadium is in, which is one more batch ("Palacio de Ibaigane" → Bilbao).

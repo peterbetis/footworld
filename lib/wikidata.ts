@@ -53,3 +53,31 @@ export async function getEntities(ids: string[], props: string, locale: Locale) 
   });
   return (data?.entities ?? {}) as Record<string, WikidataEntity>;
 }
+
+/**
+ * One entity's labels and just the given properties' statements. For big items
+ * (countries, cities), whose full claims run to megabytes: too big for Next's data
+ * cache and slow to download, when only a flag or a parent area is needed.
+ */
+export async function getEntityLite(
+  id: string,
+  props: string[],
+  locale: Locale,
+): Promise<WikidataEntity | undefined> {
+  const [entity, ...claims] = await Promise.all([
+    wikidataApi({
+      action: "wbgetentities",
+      ids: id,
+      props: "labels",
+      languages: locale === "en" ? "en" : `${locale}|en`,
+    }),
+    ...props.map((property) => wikidataApi({ action: "wbgetclaims", entity: id, property })),
+  ]);
+  const labels = entity?.entities?.[id]?.labels;
+  if (!labels) return undefined;
+  return {
+    id,
+    labels,
+    claims: Object.fromEntries(props.map((p, i) => [p, claims[i]?.claims?.[p] ?? []])),
+  };
+}

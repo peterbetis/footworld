@@ -5,6 +5,7 @@ import {
   claimString,
   claimValues,
   getEntities,
+  getEntityLite,
   label,
   type WikidataEntity,
 } from "./wikidata";
@@ -125,9 +126,8 @@ async function homeNation(place: WikidataEntity, locale: Locale) {
   for (let level = 0; current && level < 6; level++) {
     const parentId: string | undefined = claimIds(current, "P131")[0];
     if (!parentId) return null;
-    const parent: WikidataEntity | undefined = (
-      await getEntities([parentId], "labels|claims", locale)
-    )[parentId];
+    // Only what's needed: its parent area, and for a home nation its flag.
+    const parent = await getEntityLite(parentId, HOME_NATIONS.has(parentId) ? ["P41"] : ["P131"], locale);
     if (HOME_NATIONS.has(parentId)) return parent ?? null;
     current = parent;
   }
@@ -171,7 +171,7 @@ async function birthPlace(player: WikidataEntity, locale: Locale): Promise<Birth
     countryId === placeId
       ? place
       : ((countryId === UK && (await homeNation(place, locale))) ||
-        (await getEntities([countryId], "labels|claims", locale))[countryId]);
+        (await getEntityLite(countryId, ["P41"], locale)));
   const countryName = label(country, locale);
   const flagFile = claimString(country, "P41");
   return {

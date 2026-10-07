@@ -89,9 +89,41 @@ export function clubPalette(kits: KitSet, fallback = "#22c55e"): ClubPalette {
   return { primary: swatch(primary), secondary: swatch(secondary) };
 }
 
+/**
+ * The home kit's two main colours for the team heading: the shirt's colour and its
+ * second colour (white and black included), darker one first, so the club name sits
+ * on the darker side in a colour that reads on it.
+ */
+export function homeKitColours(kits: KitSet) {
+  const home = kits.home;
+  const base = home.base;
+  const differs = (c: string | undefined): c is string => !!c && distance(c, base) > 150;
+  // The shirt's own second colour first (stripes, hoops, sleeves: Barcelona's blue,
+  // Arsenal's white sleeves), then trim or lettering (Real Madrid's navy).
+  const shirt = [home.accent, home.sleeves].find(differs);
+  const detail = [home.trim, home.print].filter(differs);
+  const other =
+    shirt ??
+    (detail.length > 0
+      ? detail.reduce((a, b) => (distance(b, base) > distance(a, base) ? b : a))
+      : // A single-colour kit: a deeper shade of it.
+        toHex(mix(toRgb(base), [0, 0, 0], 0.45)));
+  const [left, right] =
+    luminance(toRgb(base)) <= luminance(toRgb(other)) ? [base, other] : [other, base];
+  return { left, right, ink: luminance(toRgb(left)) > 0.45 ? "#0c111d" : "#ffffff" };
+}
+
 /** The palette as CSS custom properties, for an element whose subtree uses the club theme. */
-export function clubThemeStyle(p: ClubPalette): React.CSSProperties {
+export function clubThemeStyle(
+  p: ClubPalette,
+  home?: ReturnType<typeof homeKitColours>,
+): React.CSSProperties {
   return {
+    ...(home && {
+      "--home-left": home.left,
+      "--home-right": home.right,
+      "--home-ink": home.ink,
+    }),
     "--club-1-l": p.primary.light,
     "--club-1-d": p.primary.dark,
     "--club-1-ink-l": p.primary.inkLight,
