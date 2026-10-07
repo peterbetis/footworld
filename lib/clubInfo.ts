@@ -1,4 +1,5 @@
 import "server-only";
+import { leagueTitlesByClub } from "./championships";
 import { countryMap, type CountryMap } from "./countryMap";
 import type { Locale } from "./i18n";
 import { plainText } from "./playerProfile";
@@ -17,7 +18,10 @@ export interface ClubInfo {
     /** Wikimedia Commons photo, 960px wide. */
     photo: string | null;
   } | null;
-  /** From Wikidata's season records; null if the query failed. */
+  /**
+   * League titles from Wikipedia's champions list (Wikidata as a fallback); European
+   * Cups from Wikidata's season records. Null if neither could be read.
+   */
   titles: { league: number; europeanCups: number } | null;
   /** Final position in last season's league table (ESPN); null if not in the league then. */
   lastSeason: { season: string; position: number | null } | null;
@@ -118,6 +122,9 @@ export async function getClubInfo({
     titles: club.title,
   });
   const qid: string | undefined = page?.query?.pages?.[0]?.pageprops?.wikibase_item;
+  // The club's article as Wikipedia names it (redirects followed), to find it in the
+  // league's titles-by-club table.
+  const articleTitle: string = page?.query?.pages?.[0]?.title ?? club.title;
   const entity = qid ? (await getEntities([qid], "labels|claims", locale))[qid] : undefined;
 
   // Full name: the infobox's "fullname" (English), else the official name, else the label.
@@ -156,10 +163,22 @@ export async function getClubInfo({
       : null),
   );
 
-  const [titles, last] = await Promise.all([
+  const [wikidataTitles, championsTable, last] = await Promise.all([
     qid ? getTitles(qid, leagueSlug).catch(() => null) : null,
+    leagueTitlesByClub(leagueSlug),
     lastSeason,
   ]);
+  // League titles from Wikipedia's champions list (a club missing from its table has
+  // none), falling back to Wikidata; European Cups from Wikidata.
+  const titles =
+    championsTable || wikidataTitles
+      ? {
+          league: championsTable
+            ? (championsTable.get(articleTitle) ?? 0)
+            : (wikidataTitles?.league ?? 0),
+          europeanCups: wikidataTitles?.europeanCups ?? 0,
+        }
+      : null;
 
   return {
     fullName,
